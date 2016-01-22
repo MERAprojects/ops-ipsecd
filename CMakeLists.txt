@@ -36,10 +36,11 @@ include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/${INCL_DIR}
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -ggdb -g3 -O0")
 
 # Source files to build ops-ipsecd
-execute_process(
-    COMMAND find ${CMAKE_CURRENT_SOURCE_DIR} -type f -name *.cpp -printf "%P;"
-    OUTPUT_VARIABLE SOURCES
+
+set (SOURCES
+        ${SRC_DIR}/ops_ipsecd.cpp
 )
+
 
 
 # Rules to build ops-ipsecd

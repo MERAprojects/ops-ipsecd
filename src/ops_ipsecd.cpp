@@ -19,6 +19,7 @@
 *System Includes
 **********************************/
 #include <cstdio>
+#include <cstdlib>
 #include <signal.h>
 #include <unistd.h>
 
