@@ -21,7 +21,7 @@ int main(
   char **argv)
 {
     int r;
-    printf("ops-utils Test Harness\n");
+    printf("ops-ipsecd Test Harness\n");
     ::testing::InitGoogleTest(&argc, argv);
     r = RUN_ALL_TESTS();
     return r;

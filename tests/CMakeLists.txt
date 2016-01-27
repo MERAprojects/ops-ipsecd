@@ -14,14 +14,24 @@
 #    under the License.
 
 cmake_minimum_required (VERSION 2.8)
-
+include(ExternalProject)
 include(FindPkgConfig)
+
 pkg_check_modules(GTEST REQUIRED gtest>=1.7.0)
 pkg_check_modules(GMOCK REQUIRED gmock>=1.7.0)
-project(ops-ipsecd-ut CXX)
 
 # pthreads
 find_package(Threads REQUIRED)
+
+# Google Test
+enable_testing()
+find_package(GTest REQUIRED)
+
+set (IPSEC-UT ${IPSEC}-ut)
+set (MAIN_SRC_DIR ../src)
+set (MOCK_DIR mocks)
+
+project(${IPSEC-UT} CXX)
 
 # Add all tests files from current directory
 execute_process(
@@ -29,6 +39,11 @@ execute_process(
          OUTPUT_VARIABLE TEST_SOURCES
 )
 
-add_executable(ops-ipsecd-ut ${TEST_SOURCES})
-include_directories(${GTEST_INCLUDE_DIRS} ${GMOCK_INCLUDE_DIRS})
-target_link_libraries(ops-ipsecd-ut ${GTEST_LIBRARIES} ${GMOCK_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+set (MAIN_SOURCES
+        ${MAIN_SRC_DIR}/IKEViciAPI.cpp
+        ${MAIN_SRC_DIR}/ops_ipsec_helper.cpp
+)
+
+add_executable(${IPSEC-UT} ${TEST_SOURCES} ${MAIN_SOURCES})
+include_directories(${GTEST_INCLUDE_DIRS} ${GMOCK_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/${MOCK_DIR})
+target_link_libraries(${IPSEC-UT} ${GTEST_LIBRARIES} ${GMOCK_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})

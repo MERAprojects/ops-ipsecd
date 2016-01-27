@@ -36,17 +36,23 @@ include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/${INCL_DIR}
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -ggdb -g3 -O0")
 
 # Source files to build ops-ipsecd
-
 set (SOURCES
         ${SRC_DIR}/ops_ipsecd.cpp
+        ${SRC_DIR}/IKEViciAPI.cpp
+        ${SRC_DIR}/ViciAPI.cpp
+        ${SRC_DIR}/ops_ipsec_helper.cpp
 )
 
-
-
 # Rules to build ops-ipsecd
+
+find_library(VICI_LIBRARIES NAMES vici PATHS ${CMAKE_LIBRARY_PATH} PATH_SUFFIXES ipsec)
+get_filename_component(VICI_LIB_PATH ${VICI_LIBRARIES} DIRECTORY)
+
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,/usr/lib/ipsec -L${VICI_LIB_PATH}")
+
 add_executable (${IPSEC} ${SOURCES})
 
-target_link_libraries (${IPSEC} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES} -lpthread -lrt)
+target_link_libraries (${IPSEC} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES} -lvici -lpthread -lrt)
 
 # Rules to install ops-ipsecd binary in rootfs
 install(TARGETS ${IPSEC}
