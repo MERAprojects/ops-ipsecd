@@ -114,3 +114,16 @@ void ViciAPI::free_req(vici_req_t *req)
 {
     vici_free_req(req);
 }
+
+int ViciAPI::register_cb(vici_conn_t *conn, const char *name,
+                         vici_event_cb_t cb, void *user)
+{
+    return vici_register(conn, (char*)name, cb, user);
+}
+
+int ViciAPI::parse_cb(vici_res_t *res, vici_parse_section_cb_t section,
+                      vici_parse_value_cb_t kv, vici_parse_value_cb_t li,
+                      void *user)
+{
+    return vici_parse_cb(res, section, kv, li, user);
+}

@@ -41,6 +41,11 @@ set (SOURCES
         ${SRC_DIR}/IKEViciAPI.cpp
         ${SRC_DIR}/ViciAPI.cpp
         ${SRC_DIR}/ops_ipsec_helper.cpp
+        ${SRC_DIR}/ViciItem.cpp
+        ${SRC_DIR}/ViciValue.cpp
+        ${SRC_DIR}/ViciList.cpp
+        ${SRC_DIR}/ViciSection.cpp
+        ${SRC_DIR}/ViciStreamParser.cpp
 )
 
 # Rules to build ops-ipsecd

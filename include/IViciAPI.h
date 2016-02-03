@@ -153,6 +153,21 @@ class IViciAPI
          * vici_free_req
          */
         virtual void free_req(vici_req_t *req) = 0;
+
+        /**
+         * Refer to https://fossies.org/dox/strongswan-5.3.5/group__vici.html
+         * vici_register
+         */
+        virtual int register_cb(vici_conn_t *conn, const char *name,
+                                vici_event_cb_t cb, void *user) = 0;
+
+        /**
+         * Refer to https://fossies.org/dox/strongswan-5.3.5/group__vici.html
+         * vici_parse_cb
+         */
+        virtual int parse_cb(vici_res_t *res, vici_parse_section_cb_t section,
+                             vici_parse_value_cb_t kv, vici_parse_value_cb_t li,
+                             void *user) = 0;
 };
 
 #endif /* IVICIAPI_H */

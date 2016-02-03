@@ -19,11 +19,10 @@
 **********************************/
 #include <gtest/gtest.h>
 
-#include "ops-ipsecd.h"
-
 /**********************************
 *Local Includes
 **********************************/
+#include "ops-ipsecd.h"
 #include "ops_ipsecd_helper.h"
 
 /**********************************

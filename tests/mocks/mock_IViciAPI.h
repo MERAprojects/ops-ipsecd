@@ -54,4 +54,10 @@ class MockIViciAPI : public IViciAPI {
       void(vici_req_t *req));
   MOCK_METHOD1(free_req,
       void(vici_req_t *req));
+  MOCK_METHOD4(register_cb,
+      int(vici_conn_t *conn, const char *name, vici_event_cb_t cb, void *user));
+  MOCK_METHOD5(parse_cb,
+      int(vici_res_t *res, vici_parse_section_cb_t section,
+          vici_parse_value_cb_t kv, vici_parse_value_cb_t li,
+          void *user));
 };

@@ -42,6 +42,11 @@ execute_process(
 set (MAIN_SOURCES
         ${MAIN_SRC_DIR}/IKEViciAPI.cpp
         ${MAIN_SRC_DIR}/ops_ipsec_helper.cpp
+        ${MAIN_SRC_DIR}/ViciItem.cpp
+        ${MAIN_SRC_DIR}/ViciValue.cpp
+        ${MAIN_SRC_DIR}/ViciList.cpp
+        ${MAIN_SRC_DIR}/ViciSection.cpp
+        ${MAIN_SRC_DIR}/ViciStreamParser.cpp
 )
 
 add_executable(${IPSEC-UT} ${TEST_SOURCES} ${MAIN_SOURCES})

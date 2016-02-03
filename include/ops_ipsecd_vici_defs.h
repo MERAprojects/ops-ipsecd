@@ -19,6 +19,11 @@
 #define OPS_IPSECD_VICI_DEFS_H
 
 /**********************************
+*System Includes
+**********************************/
+#include <cstdint>
+
+/**********************************
 *Defines
 **********************************/
 
@@ -60,5 +65,16 @@
 #define IPSEC_VICI_TERMINATE        "terminate"
 #define IPSEC_VICI_IKE              "ike"
 
+
+/**********************************
+*Enums
+**********************************/
+
+enum class ViciItemType : uint32_t
+{
+    Section,
+    List,
+    Value
+};
 
 #endif /* OPS_IPSECD_VICI_DEFS_H */

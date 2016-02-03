@@ -137,6 +137,19 @@ class ViciAPI : public IViciAPI
          * @copydoc IViciAPI::free_req
          */
         void free_req(vici_req_t *req) override;
+
+        /**
+         * @copydoc IViciAPI::register_cb
+         */
+        int register_cb(vici_conn_t *conn, const char *name,
+                        vici_event_cb_t cb, void *user) override;
+
+        /**
+         * @copydoc IViciAPI::parse_cb
+         */
+        int parse_cb(vici_res_t *res, vici_parse_section_cb_t section,
+                     vici_parse_value_cb_t kv, vici_parse_value_cb_t li,
+                     void *user) override;
 };
 
 #endif /* VICIAPI_H */

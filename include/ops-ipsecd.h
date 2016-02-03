@@ -61,6 +61,9 @@ enum class ipsec_ret : int32_t
     INVALID_SIZE,
     NOT_READY,
     EMPTY_STRING,
+    NOT_PARSE,
+    PARSE_ERR,
+    REGISTER_FAILED,
 
     //Add Errors before this line
     OK = 0
