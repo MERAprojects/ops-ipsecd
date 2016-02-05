@@ -65,6 +65,7 @@
 #define IPSEC_VICI_TERMINATE        "terminate"
 #define IPSEC_VICI_IKE              "ike"
 #define IPSEC_VICI_LIST_SA_EVENT    "list-sa"
+#define IPSEC_VICI_LOAD_SAS         "load-sas"
 
 
 /**********************************
@@ -73,7 +74,7 @@
 
 enum class ViciItemType : uint32_t
 {
-    Section,
+    Section = 0,
     List,
     Value
 };

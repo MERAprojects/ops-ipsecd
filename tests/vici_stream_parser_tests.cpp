@@ -372,6 +372,60 @@ TEST_F(ViciStreamParserTestSuite, TestViciSectionAddItem)
 }
 
 /**
+ * Objective: Verify that the Vici Section Get Item Type will return correctly
+ **/
+TEST_F(ViciStreamParserTestSuite, TestViciSectionGetItemType)
+{
+    ViciSection viciSection;
+
+    std::string itemNameValue = "Test_Name_Value";
+    std::string valueTestValue = "Test_Value";
+
+    std::string itemNameList = "Test_Name_List";
+    std::string valueTestList = "Test_List";
+
+    ViciValue* viciValue = new ViciValue();
+    viciValue->set_value(valueTestValue);
+    viciSection.set_item(itemNameValue, viciValue);
+
+    ViciList* viciList = new ViciList();
+    viciList->add_value(valueTestList);
+    viciSection.set_item(itemNameList, viciList);
+
+    /////////////////////////////////////////////////////////
+    ViciValue* retValue = viciSection.get_item_type<ViciValue>(itemNameValue);
+    ASSERT_NE(retValue, nullptr);
+    ASSERT_EQ(retValue->get_vici_item_type(), ViciItemType::Value);
+    EXPECT_EQ(retValue->get_value().compare(valueTestValue), 0);
+
+    ViciList* retList = viciSection.get_item_type<ViciList>(itemNameList);
+    ASSERT_NE(retList, nullptr);
+    ASSERT_EQ(retList->get_vici_item_type(), ViciItemType::List);
+    EXPECT_EQ(retList->get_value(0).compare(valueTestList), 0);
+}
+
+/**
+ * Objective: Verify that the Vici Section Get Item Type will return null if
+ * a non-child class of Vici Item is set as the type
+ **/
+TEST_F(ViciStreamParserTestSuite, TestViciSectionGetItemTypeWrongType)
+{
+    ViciSection viciSection;
+
+    std::string itemNameValue = "Test_Name_Value";
+    std::string valueTestValue = "Test_Value";
+
+    ViciValue* viciValue = new ViciValue();
+    viciValue->set_value(valueTestValue);
+    viciSection.set_item(itemNameValue, viciValue);
+
+    /////////////////////////////////////////////////////////
+    ViciStreamParser* retValue =
+            viciSection.get_item_type<ViciStreamParser>(itemNameValue);
+    EXPECT_EQ(retValue, nullptr);
+}
+
+/**
  * Objective: Verify Vici Section Iterators
  **/
 TEST_F(ViciStreamParserTestSuite, TestViciSectionIterators)

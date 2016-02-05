@@ -119,6 +119,19 @@ class ViciSection : public ViciItem
         ViciItem* get_item(const std::string& name) const;
 
         /**
+         * Gets a Vici Item from the Section's map cast to a Type
+         *
+         * @param name Name of the item
+         *
+         * @return Vici Item, if not found it will return null
+         */
+        template<class T>
+        T* get_item_type(const std::string& name) const
+        {
+            return dynamic_cast<T*>(get_item(name));
+        }
+
+        /**
          * Iterator to the Beginning of the map
          */
         ViciItemMapIt begin();
