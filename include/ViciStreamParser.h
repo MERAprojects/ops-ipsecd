@@ -30,8 +30,9 @@ extern "C"
 /**********************************
 *Local Includes
 **********************************/
-#include "ViciSection.h"
 #include "ops-ipsecd.h"
+#include "ViciSection.h"
+#include "IViciStreamParser.h"
 
 /**********************************
 *Forward Declarations
@@ -41,7 +42,7 @@ class IViciAPI;
 /**
  * Vici Stream Callback Parser
  */
-class ViciStreamParser
+class ViciStreamParser : public IViciStreamParser
 {
     protected:
 
@@ -111,42 +112,31 @@ class ViciStreamParser
         virtual ~ViciStreamParser();
 
         /**
-         * Gets the current parse status
-         *
-         * @return Parse Status
+         * @copydoc IViciStreamParser::get_parse_status
          */
-        inline ipsec_ret get_parse_status() const
+        inline ipsec_ret get_parse_status() const override
         {
             return m_parse_status;
         }
 
         /**
-         * Gets a Vici Section filled with the response of the requested event.
-         *
-         * @return  Vici Event Response
+         * @copydoc IViciStreamParser::get_vici_answer
          */
-        inline const ViciSection& get_vici_answer() const
+        inline const ViciSection& get_vici_answer() const override
         {
             return m_vici_section;
         }
 
         /**
-         * Registers an Event Callback. When the event is triggered the
-         * callback will parse the answer.
-         *
-         * @param conn Vici Connection
-         * @param name Name of the Event
-         *
-         * @return OK if the event callback was registered, otherwise an error
-         * code is returned
+         * @copydoc IViciStreamParser::register_stream_cb
          */
         ipsec_ret register_stream_cb(vici_conn_t* conn,
-                                     const std::string& name);
+                                     const std::string& name) override;
 
         /**
-         * Unregisters the callback if an event has been registered.
+         * @copydoc IViciStreamParser::unregister_stream_cb
          */
-        void unregister_stream_cb();
+        void unregister_stream_cb() override;
 
         /**
          * Struct to hold multiple fields for Callback Data User Parameter

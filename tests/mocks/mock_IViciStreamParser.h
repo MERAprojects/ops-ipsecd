@@ -16,23 +16,16 @@
  */
 
 #include "gmock/gmock.h"
-#include "IIKEAPI.h"
+#include "IViciStreamParser.h"
 
-class MockIIKEAPI : public IIKEAPI {
+class MockIViciStreamParser : public IViciStreamParser {
  public:
-  MOCK_METHOD0(initialize,
+  MOCK_CONST_METHOD0(get_parse_status,
       ipsec_ret());
-  MOCK_METHOD1(create_connection,
-      ipsec_ret(const ipsec_ike_connection& conn));
-  MOCK_METHOD1(delete_connection,
-      ipsec_ret(const std::string& conn_name));
-  MOCK_METHOD2(start_connection,
-      ipsec_ret(const std::string& conn_name, uint32_t timeout_ms));
-  MOCK_METHOD2(stop_connection,
-      ipsec_ret(const std::string& conn_name, uint32_t timeout_ms));
-  MOCK_METHOD1(load_credential,
-      ipsec_ret(const ipsec_credential& cred));
-  MOCK_METHOD2(get_connection_stats,
-      ipsec_ret(const std::string& conn_name,
-                ipsec_ike_connection_stats& stats));
+  MOCK_CONST_METHOD0(get_vici_answer,
+      const ViciSection&());
+  MOCK_METHOD2(register_stream_cb,
+      ipsec_ret(vici_conn_t* conn, const std::string& name));
+  MOCK_METHOD0(unregister_stream_cb,
+      void());
 };

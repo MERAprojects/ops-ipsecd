@@ -112,6 +112,19 @@ class IIKEAPI
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
         virtual ipsec_ret load_credential(const ipsec_credential& cred) = 0;
+
+        /**
+         * Get the statistics for a given Connection
+         *
+         * @param conn_name Name of the Connection
+         *
+         * @param stats Structure to fill with the stats
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret get_connection_stats(const std::string& conn_name,
+                                         ipsec_ike_connection_stats& stats) = 0;
+
 };
 
 #endif /* IIKEAPI_H */

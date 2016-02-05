@@ -32,8 +32,9 @@
 *Function Declarations
 **********************************/
 
-IKEViciAPI::IKEViciAPI(IViciAPI& vici_api)
+IKEViciAPI::IKEViciAPI(IViciAPI& vici_api, IViciStreamParser& viciParser)
     : m_vici_api(vici_api)
+    , m_vici_stream_parser(viciParser)
 {
 }
 
@@ -424,4 +425,10 @@ ipsec_ret IKEViciAPI::load_credential(const ipsec_credential& cred)
     }
 
     return ipsec_ret::OK;
+}
+
+ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
+                                           ipsec_ike_connection_stats& stats)
+{
+    return ipsec_ret::ERR;
 }

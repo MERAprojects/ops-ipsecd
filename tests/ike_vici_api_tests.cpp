@@ -32,6 +32,7 @@ extern "C"
 #include "mock_IViciAPI.h"
 #include "ops_ipsecd_helper.h"
 #include "ops_ipsecd_vici_defs.h"
+#include "mocks/mock_IViciStreamParser.h"
 
 /**********************************
 *Using
@@ -47,8 +48,8 @@ class IKEViciAPI_EnO : public IKEViciAPI
 {
     public:
 
-        IKEViciAPI_EnO(IViciAPI& vici_api)
-            : IKEViciAPI(vici_api)
+        IKEViciAPI_EnO(IViciAPI& vici_api, IViciStreamParser& viciParser)
+            : IKEViciAPI(vici_api, viciParser)
         {
         }
 
@@ -89,10 +90,11 @@ class IKEViciAPITestSuite : public Test
     public:
 
         MockIViciAPI m_vici_api;
+        MockIViciStreamParser m_vici_stream_parser;
         IKEViciAPI_EnO m_ike_vici_api;
 
         IKEViciAPITestSuite()
-            : m_ike_vici_api(m_vici_api)
+            : m_ike_vici_api(m_vici_api, m_vici_stream_parser)
         {
         }
 
