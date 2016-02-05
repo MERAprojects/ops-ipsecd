@@ -65,8 +65,21 @@
 #define IPSEC_VICI_TERMINATE        "terminate"
 #define IPSEC_VICI_IKE              "ike"
 #define IPSEC_VICI_LIST_SA_EVENT    "list-sa"
-#define IPSEC_VICI_LOAD_SAS         "load-sas"
-
+#define IPSEC_VICI_LIST_SAS         "list-sas"
+#define IPSEC_VICI_ESTABLISHED_KEY  "established"
+#define IPSEC_VICI_INIT_SPI_KEY     "initiator-spi"
+#define IPSEC_VICI_RESP_SPI_KEY     "responder-spi"
+#define IPSEC_VICI_STATE_KEY        "state"
+#define IPSEC_VICI_REAUTH_TIME_KEY  "reauth-time"
+#define IPSEC_VICI_LIFE_TIME_KEY    "life-time"
+#define IPSEC_VICI_REKEY_TIME_KEY   "rekey-time"
+#define IPSEC_VICI_BYTES_OUT_KEY    "bytes-out"
+#define IPSEC_VICI_BYTES_IN_KEY     "bytes-in"
+#define IPSEC_VICI_PACKETS_OUT_KEY  "packets-out"
+#define IPSEC_VICI_PACKETS_IN_KEY   "packets-in"
+#define IPSEC_VICI_SPI_OUT_KEY      "spi-out"
+#define IPSEC_VICI_SPI_IN_KEY       "spi-in"
+#define IPSEC_VICI_CHILD_SAS_KEY    "child-sas"
 
 /**********************************
 *Enums

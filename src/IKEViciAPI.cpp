@@ -24,7 +24,10 @@
 *Local Includes
 **********************************/
 #include "IViciAPI.h"
+#include "ViciList.h"
+#include "ViciValue.h"
 #include "IKEViciAPI.h"
+#include "ViciSection.h"
 #include "ops_ipsecd_helper.h"
 #include "ops_ipsecd_vici_defs.h"
 
@@ -430,5 +433,154 @@ ipsec_ret IKEViciAPI::load_credential(const ipsec_credential& cred)
 ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
                                            ipsec_ike_connection_stats& stats)
 {
-    return ipsec_ret::ERR;
+    if(!m_is_ready)
+    {
+        return ipsec_ret::NOT_READY;
+    }
+
+    vici_req_t* req = nullptr;
+    vici_res_t* res = nullptr;
+
+    //
+    //Fill in the message to execute the command as in
+    //https://www.strongswan.org/apidoc/md_src_libcharon_plugins_vici_README.html
+    //
+
+    if(m_vici_stream_parser.register_stream_cb(m_vici_connection,
+                                    IPSEC_VICI_LIST_SA_EVENT) != ipsec_ret::OK)
+    {
+        return ipsec_ret::REGISTER_FAILED;
+    }
+
+    req = m_vici_api.begin(IPSEC_VICI_LIST_SAS);
+    m_vici_api.add_key_value_str(req, IPSEC_VICI_IKE, conn_name);
+
+    res = m_vici_api.submit(req, m_vici_connection);
+    if (res == nullptr)
+    {
+        m_vici_stream_parser.unregister_stream_cb();
+        return ipsec_ret::ERR;
+    }
+
+    m_vici_api.free_res(res);
+    m_vici_stream_parser.unregister_stream_cb();
+
+    if(m_vici_stream_parser.get_parse_status() != ipsec_ret::OK)
+    {
+        return m_vici_stream_parser.get_parse_status();
+    }
+
+    const ViciSection& answer = m_vici_stream_parser.get_vici_answer();
+
+    ViciSection* section = answer.get_item_type<ViciSection>(conn_name);
+    if(section == nullptr)
+    {
+        return ipsec_ret::NOT_FOUND;
+    }
+
+    ViciValue* value = nullptr;
+    stats = ipsec_ike_connection_stats();
+
+    stats.m_conn_name = conn_name;
+
+    //Main IKE Section
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_ESTABLISHED_KEY);
+    if(value != nullptr)
+    {
+        stats.m_establish_secs = std::stoul(value->get_value());
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_REKEY_TIME_KEY);
+    if(value != nullptr)
+    {
+        stats.m_rekey_time = std::stoul(value->get_value());
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_INIT_SPI_KEY);
+    if(value != nullptr)
+    {
+        stats.m_initiator_spi = std::stoull(value->get_value(), nullptr, 16);
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_RESP_SPI_KEY);
+    if(value != nullptr)
+    {
+        stats.m_responder_spi = std::stoull(value->get_value(), nullptr, 16);
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_STATE_KEY);
+    if(value != nullptr)
+    {
+        stats.m_conn_state =
+                ipsecd_helper::ike_state_to_ipsec_state(value->get_value());
+    }
+
+    //Child SA Section
+    section = section->get_item_type<ViciSection>(IPSEC_VICI_CHILD_SAS_KEY);
+    if(section == nullptr)
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
+    section = section->get_item_type<ViciSection>(conn_name);
+    if(section == nullptr)
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_LIFE_TIME_KEY);
+    if(value != nullptr)
+    {
+        stats.m_sa_lifetime = std::stoul(value->get_value());
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_REKEY_TIME_KEY);
+    if(value != nullptr)
+    {
+        stats.m_sa_rekey = std::stoul(value->get_value());
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_BYTES_IN_KEY);
+    if(value != nullptr)
+    {
+        stats.m_bytes_in = std::stoull(value->get_value());
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_BYTES_OUT_KEY);
+    if(value != nullptr)
+    {
+        stats.m_bytes_out = std::stoull(value->get_value());
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_PACKETS_IN_KEY);
+    if(value != nullptr)
+    {
+        stats.m_packets_in = std::stoull(value->get_value());
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_PACKETS_OUT_KEY);
+    if(value != nullptr)
+    {
+        stats.m_packets_out = std::stoull(value->get_value());
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_SPI_IN_KEY);
+    if(value != nullptr)
+    {
+        stats.m_sa_spi_in = std::stoull(value->get_value(), nullptr, 16);
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_SPI_OUT_KEY);
+    if(value != nullptr)
+    {
+        stats.m_sa_spi_out = std::stoull(value->get_value(), nullptr, 16);
+    }
+
+    value = section->get_item_type<ViciValue>(IPSEC_VICI_STATE_KEY);
+    if(value != nullptr)
+    {
+        stats.m_sa_state =
+                ipsecd_helper::ike_state_to_ipsec_state(value->get_value());
+    }
+
+    return ipsec_ret::OK;
 }

@@ -339,9 +339,9 @@ struct ipsec_ike_connection_stats
     uint64_t m_responder_spi = 0;
 
     /**
-     * Seconds till connection re-authenticates
+     * Seconds till IKE connection re-keys
      */
-    uint32_t m_reauth_time = 0;
+    uint32_t m_rekey_time = 0;
 
     /**
      * State of the IKE Connection
