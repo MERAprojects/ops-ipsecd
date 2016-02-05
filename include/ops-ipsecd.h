@@ -131,6 +131,12 @@ enum class ipsec_state : int32_t
     /////////////////////
 
     config_ok = 0,
+    created,
+    connecting,
+    passive,
+    rekeying,
+    deleting,
+    destroying,
     installed,
     establish
 };

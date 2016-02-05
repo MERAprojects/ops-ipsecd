@@ -220,3 +220,34 @@ TEST_F(IPsecdHelperTestSuite, TestCipherIntegrityGroupToStr)
                     ipsec_diffie_group::group_14);
     EXPECT_EQ(res.compare("aes-md5-modp2048"), 0);
 }
+
+/**
+ * Objective: Verify that IKE State to String will return the correct
+ * ipsec state
+ **/
+TEST_F(IPsecdHelperTestSuite, TestIKEStateToString)
+{
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("ESTABLISHED"),
+              ipsec_state::establish);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("CONNECTING"),
+              ipsec_state::connecting);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("REKEYING"),
+              ipsec_state::rekeying);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("DELETING"),
+              ipsec_state::deleting);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("DESTROYING"),
+              ipsec_state::destroying);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("PASSIVE"),
+              ipsec_state::passive);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("CREATED"),
+              ipsec_state::created);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("BLaH"),
+              ipsec_state::config_error);
+}

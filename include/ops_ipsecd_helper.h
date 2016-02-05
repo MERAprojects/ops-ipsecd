@@ -110,6 +110,15 @@ namespace ipsecd_helper
     extern std::string cipher_integrity_group_to_str(ipsec_cipher cipher,
                                                      ipsec_integrity integrity,
                                                      ipsec_diffie_group group);
+
+    /**
+     * Converts a IKE State (string) to an ipsec_state
+     *
+     * @param ike_state IKE String state to convert
+     *
+     * @return ipsec state
+     */
+    extern ipsec_state ike_state_to_ipsec_state(const std::string ike_state);
 }
 
 #endif /* OPS_IPSECD_HELPER_H */

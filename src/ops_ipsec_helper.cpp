@@ -183,4 +183,38 @@ namespace ipsecd_helper
 
         return result;
     }
+
+    ipsec_state ike_state_to_ipsec_state(const std::string ike_state)
+    {
+        if(ike_state.compare("ESTABLISHED") == 0)
+        {
+            return ipsec_state::establish;
+        }
+        else if(ike_state.compare("CONNECTING") == 0)
+        {
+            return ipsec_state::connecting;
+        }
+        else if(ike_state.compare("REKEYING") == 0)
+        {
+            return ipsec_state::rekeying;
+        }
+        else if(ike_state.compare("DELETING") == 0)
+        {
+            return ipsec_state::deleting;
+        }
+        else if(ike_state.compare("DESTROYING") == 0)
+        {
+            return ipsec_state::destroying;
+        }
+        else if(ike_state.compare("PASSIVE") == 0)
+        {
+            return ipsec_state::passive;
+        }
+        else if(ike_state.compare("CREATED") == 0)
+        {
+            return ipsec_state::created;
+        }
+
+        return ipsec_state::config_error;
+    }
 }
