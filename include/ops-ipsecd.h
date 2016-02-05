@@ -137,6 +137,11 @@ enum class ipsec_state : int32_t
     rekeying,
     deleting,
     destroying,
+    routed,
+    installing,
+    updating,
+    rekeyed,
+    retrying,
     installed,
     establish
 };

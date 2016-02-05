@@ -190,6 +190,10 @@ namespace ipsecd_helper
         {
             return ipsec_state::establish;
         }
+        else if(ike_state.compare("INSTALLED") == 0)
+        {
+            return ipsec_state::installed;
+        }
         else if(ike_state.compare("CONNECTING") == 0)
         {
             return ipsec_state::connecting;
@@ -213,6 +217,26 @@ namespace ipsecd_helper
         else if(ike_state.compare("CREATED") == 0)
         {
             return ipsec_state::created;
+        }
+        else if(ike_state.compare("ROUTED") == 0)
+        {
+            return ipsec_state::routed;
+        }
+        else if(ike_state.compare("INSTALLING") == 0)
+        {
+            return ipsec_state::installing;
+        }
+        else if(ike_state.compare("UPDATING") == 0)
+        {
+            return ipsec_state::updating;
+        }
+        else if(ike_state.compare("REKEYED") == 0)
+        {
+            return ipsec_state::rekeyed;
+        }
+        else if(ike_state.compare("RETRYING") == 0)
+        {
+            return ipsec_state::retrying;
         }
 
         return ipsec_state::config_error;

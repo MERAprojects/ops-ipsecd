@@ -248,6 +248,24 @@ TEST_F(IPsecdHelperTestSuite, TestIKEStateToString)
     EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("CREATED"),
               ipsec_state::created);
 
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("ROUTED"),
+              ipsec_state::routed);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("INSTALLING"),
+              ipsec_state::installing);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("INSTALLED"),
+              ipsec_state::installed);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("UPDATING"),
+              ipsec_state::updating);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("REKEYED"),
+              ipsec_state::rekeyed);
+
+    EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("RETRYING"),
+              ipsec_state::retrying);
+
     EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("BLaH"),
               ipsec_state::config_error);
 }
