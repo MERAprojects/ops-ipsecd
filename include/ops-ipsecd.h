@@ -124,6 +124,24 @@ enum class ipsec_credential_type : uint32_t
     rsa
 };
 
+enum class ipsec_state : int32_t
+{
+    config_error = -10000,
+
+    /////////////////////
+
+    config_ok = 0,
+    installed,
+    establish
+};
+
+enum class ipsec_direction : uint32_t
+{
+    outbound = 0,
+    inbound,
+    forward
+};
+
 /**********************************
 *Unions
 **********************************/
@@ -210,7 +228,7 @@ struct ipsec_ike_connection
     /**
      * Address Family of the connection
      */
-    uint16_t m_addr_family              = 0;
+    uint16_t m_addr_family              = AF_INET;
 
     /**
      * Local End-point for the connection
@@ -282,6 +300,204 @@ struct ipsec_credential
         uint8_t* m_data                 = nullptr;
         uint32_t m_len                  = 0;
     } m_rsa;
+};
+
+/**
+ * IPsec IKE Connection Statistics Values
+ */
+struct ipsec_ike_connection_stats
+{
+    /**
+     * Name of the Connection
+     */
+    std::string m_conn_name = "";
+
+    /**
+     * Seconds since been establish
+     */
+    uint32_t m_establish_secs = 0;
+
+    /**
+     * Initiator SPI/Cookie
+     */
+    uint64_t m_initiator_spi = 0;
+
+    /**
+     * Responder SPI/Cookie
+     */
+    uint64_t m_responder_spi = 0;
+
+    /**
+     * Seconds till connection re-authenticates
+     */
+    uint32_t m_reauth_time = 0;
+
+    /**
+     * State of the IKE Connection
+     */
+    ipsec_state m_conn_state = ipsec_state::config_error;
+
+    /**
+     * Seconds before SA expires
+     */
+    uint32_t m_sa_lifetime = 0;
+
+    /**
+     * Seconds before SA re-keys
+     */
+    uint32_t m_sa_rekey = 0;
+
+    /**
+     * Number of input bytes processed
+     */
+    uint64_t m_bytes_in = 0;
+
+    /**
+     * Number of output bytes processed
+     */
+    uint64_t m_bytes_out = 0;
+
+    /**
+     * Number of input packets processed
+     */
+    uint64_t m_packets_in = 0;
+
+    /**
+     * Number of output packets processed
+     */
+    uint64_t m_packets_out = 0;
+
+    /**
+     * State of the SA
+     */
+    ipsec_state m_sa_state = ipsec_state::config_error;
+
+    /**
+     * Inbound SA SPI
+     */
+    uint32_t m_sa_spi_in = 0;
+
+    /**
+     * Outbound SA SPI
+     */
+    uint32_t m_sa_spi_out = 0;
+};
+
+/**
+ * IPsec current lifetime Values
+ */
+struct ipsec_lifetime_current
+{
+    /**
+     * Date added in epoch
+     */
+    uint64_t m_add_time = 0;
+
+    /**
+     * Date used in epoch
+     */
+    uint64_t m_use_time = 0;
+
+    /**
+     * Amount of bytes processed
+     */
+    uint64_t m_bytes;
+
+    /**
+     * Amount of packets processed
+     */
+    uint64_t m_packets;
+};
+
+struct ipsec_selector
+{
+    /**
+     * Address Family of the Selector
+     */
+    uint16_t m_addr_family = AF_INET;
+
+    /**
+     * IP Source Address Range
+     */
+    ip_addr_t m_src_addr = { 0 };
+
+    /**
+     * Source Address Mask
+     */
+    uint8_t m_src_mask = 0;
+
+    /**
+     * IP Destination Address Range
+     */
+    ip_addr_t m_dst_addr = { 0 };
+
+    /**
+     * Destination Address Mask
+     */
+    uint8_t m_dst_mask = 0;
+};
+
+/**
+ * SP ID
+ */
+struct ipsec_sp_id
+{
+    /**
+     * Direction of the packets for the the Policy
+     */
+    ipsec_direction m_dir;
+
+    /**
+     * Selector for the SP
+     */
+    ipsec_selector m_selector;
+};
+
+/**
+ * Statistic information for the SA
+ */
+struct ipsec_sa_stats
+{
+    /**
+     * SPI used in SA
+     */
+    uint32_t m_spi = 0;
+
+    /**
+     * Size of the replay-window
+     */
+    uint32_t m_replay_window = 0;
+
+    /**
+     * Number of replays
+     */
+    uint32_t m_replay = 0;
+
+    /**
+     * Number of failed integrity checks
+     */
+    uint32_t m_integrity_failed = 0;
+
+    /**
+     * Lifetime stats of the SA
+     */
+    ipsec_lifetime_current m_life_stats;
+};
+
+/**
+ * Statistic information for the SP
+ */
+struct ipsec_sp_stats
+{
+    /**
+     * ID of the SP
+     */
+    ipsec_sp_id m_id;
+
+    /**
+     * Lifetime stats of the SP
+     */
+    ipsec_lifetime_current m_life_stats;
 };
 
 #endif
