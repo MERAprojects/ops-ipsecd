@@ -22,11 +22,34 @@ set (INCL_DIR include)
 
 # Rules to locate needed libraries
 include(FindPkgConfig)
+
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME ON)
+
 pkg_check_modules(OVSCOMMON REQUIRED libovscommon)
 pkg_check_modules(OVSDB REQUIRED libovsdb)
 
 # pthreads
 find_package(Threads REQUIRED)
+# Doxygen documentation
+find_package(Doxygen)
+# Boost Library
+find_package(Boost)
+
+if(Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
+IF(DOXYGEN_FOUND)
+    set(doxyfile ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+
+    add_custom_target(doc
+        COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating documentation with Doxygen"
+        VERBATIM)
+ENDIF()
 
 include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/${INCL_DIR}
                      ${OVSCOMMON_INCLUDE_DIRS}
@@ -57,11 +80,15 @@ SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,/usr/lib/ipsec 
 
 add_executable (${IPSEC} ${SOURCES})
 
+#Tests
+add_subdirectory(tests)
+
+IF (DOXYGEN_FOUND)
+    add_dependencies(${IPSEC} doc)
+ENDIF()
+
 target_link_libraries (${IPSEC} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES} -lvici -lpthread -lrt)
 
 # Rules to install ops-ipsecd binary in rootfs
 install(TARGETS ${IPSEC}
         RUNTIME DESTINATION bin)
-
-#Tests
-add_subdirectory(tests)

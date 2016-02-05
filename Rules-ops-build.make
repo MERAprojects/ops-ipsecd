@@ -15,7 +15,9 @@
 
 .PHONY: ops-ipsecd-test ops-ipsecd-valgrind-test
 
+#Coverage support
 MODULE_TEST_TARGET=ops-ipsecd-test
+COVERAGE_EXCLUDE_PATTERN+=external* boost* ovs*
 
 UT_BIN=src/ops-ipsecd/build/tests/ops-ipsecd-ut
 
