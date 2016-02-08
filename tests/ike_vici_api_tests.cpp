@@ -33,6 +33,7 @@ extern "C"
 #include "ops_ipsecd_helper.h"
 #include "ops_ipsecd_vici_defs.h"
 #include "mocks/mock_IViciStreamParser.h"
+#include "ViciValue.h"
 
 /**********************************
 *Using
@@ -40,8 +41,10 @@ extern "C"
 using ::testing::An;
 using ::testing::Eq;
 using ::testing::Test;
+using ::testing::ByRef;
 using ::testing::StrEq;
 using ::testing::Return;
+using ::testing::ReturnRef;
 using ::testing::InSequence;
 
 class IKEViciAPI_EnO : public IKEViciAPI
@@ -140,6 +143,142 @@ class IKEViciAPITestSuite : public Test
             conn.m_child_sa.m_auth_method   = ipsec_auth_method::esp;
 
             return conn;
+        }
+
+        /**
+         * Creates a ViciSection With the basic connection stats
+         *
+         * @return ViciSection fill with the Connection Stats
+         */
+        ViciSection* CreateViciSectionStatsObject()
+        {
+            ViciSection* section = nullptr;
+            ViciSection* tmp = nullptr;
+            ViciValue* value = nullptr;
+            ViciSection* retSection = new ViciSection();
+            std::string conn_name = "TestConn";
+
+            //Set Main Section
+            section = new ViciSection();
+            section->set_name(conn_name);
+            retSection->set_item(conn_name, section);
+
+            value = new ViciValue();
+            value->set_value("1000");
+            section->set_item(IPSEC_VICI_ESTABLISHED_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("2000");
+            section->set_item(IPSEC_VICI_REKEY_TIME_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("AAAA");
+            section->set_item(IPSEC_VICI_INIT_SPI_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("BBBB");
+            section->set_item(IPSEC_VICI_RESP_SPI_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("ESTABLISHED");
+            section->set_item(IPSEC_VICI_STATE_KEY, value);
+
+            //Set Child SA Section
+            tmp = new ViciSection();
+            tmp->set_name(IPSEC_VICI_CHILD_SAS_KEY);
+            section->set_item(IPSEC_VICI_CHILD_SAS_KEY, tmp);
+            section = tmp;
+
+            tmp = new ViciSection();
+            tmp->set_name(conn_name);
+            section->set_item(conn_name, tmp);
+            section = tmp;
+
+            value = new ViciValue();
+            value->set_value("3000");
+            section->set_item(IPSEC_VICI_LIFE_TIME_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("4000");
+            section->set_item(IPSEC_VICI_REKEY_TIME_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("5000");
+            section->set_item(IPSEC_VICI_BYTES_IN_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("6000");
+            section->set_item(IPSEC_VICI_BYTES_OUT_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("7000");
+            section->set_item(IPSEC_VICI_PACKETS_IN_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("8000");
+            section->set_item(IPSEC_VICI_PACKETS_OUT_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("CCCC");
+            section->set_item(IPSEC_VICI_SPI_IN_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("DDDD");
+            section->set_item(IPSEC_VICI_SPI_OUT_KEY, value);
+
+            value = new ViciValue();
+            value->set_value("INSTALLED");
+            section->set_item(IPSEC_VICI_STATE_KEY, value);
+
+            return retSection;
+        }
+
+        /**
+         * Sets Basic Expectations for Get Connection Stats test to use
+         *
+         * @param connName Name to use for the connection
+         *
+         * @param retSection ViciSection to use in answer for parser.
+         */
+        void SetGetConnectionStatsExpectation(const std::string& connName,
+                                              ViciSection* retSection)
+        {
+            vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+            vici_req_t* reqTest = (vici_req_t*)0x200;
+            vici_res_t* resTest = (vici_res_t*)0x300;
+
+            m_ike_vici_api.set_is_ready(true);
+            m_ike_vici_api.set_vici_connection(viciConnTest);
+
+            {
+                InSequence s;
+
+                EXPECT_CALL(m_vici_stream_parser, register_stream_cb(
+                                                    Eq(viciConnTest),
+                                                    StrEq(IPSEC_VICI_LIST_SA_EVENT)))
+                            .WillOnce(Return(ipsec_ret::OK));
+
+                EXPECT_CALL(m_vici_api, begin(StrEq(IPSEC_VICI_LIST_SAS)))
+                            .WillOnce(Return(reqTest));
+
+                EXPECT_CALL(m_vici_api, add_key_value_str(Eq(reqTest),
+                                                      StrEq(IPSEC_VICI_IKE),
+                                                      StrEq(connName)));
+
+                EXPECT_CALL(m_vici_api, submit(Eq(reqTest), Eq(viciConnTest)))
+                            .WillOnce(Return(resTest));
+            }
+
+            EXPECT_CALL(m_vici_api, free_res(Eq(resTest)));
+
+            EXPECT_CALL(m_vici_stream_parser, unregister_stream_cb());
+
+            EXPECT_CALL(m_vici_stream_parser, get_parse_status())
+                        .WillOnce(Return(ipsec_ret::OK));
+
+            EXPECT_CALL(m_vici_stream_parser, get_vici_answer())
+                        .WillOnce(ReturnRef((*retSection)));
+
         }
 
         /**
@@ -1282,4 +1421,56 @@ TEST_F(IKEViciAPITestSuite, TestLoadCredentialLoadFails)
     EXPECT_EQ(m_ike_vici_api.load_credential(cred),
               ipsec_ret::ADD_FAILED);
     EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify that the statistics of a connection can be retrieve
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStats)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::OK);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0xBBBB);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::establish);
+    EXPECT_EQ(testStats.m_sa_lifetime, 3000);
+    EXPECT_EQ(testStats.m_sa_rekey, 4000);
+    EXPECT_EQ(testStats.m_bytes_in, 5000);
+    EXPECT_EQ(testStats.m_bytes_out, 6000);
+    EXPECT_EQ(testStats.m_packets_in, 7000);
+    EXPECT_EQ(testStats.m_packets_out, 8000);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::installed);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0xCCCC);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0xDDDD);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * the class is not ready
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsNotReady)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+
+    m_ike_vici_api.set_is_ready(false);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::NOT_READY);
 }

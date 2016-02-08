@@ -489,11 +489,19 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     {
         stats.m_establish_secs = std::stoul(value->get_value());
     }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_REKEY_TIME_KEY);
     if(value != nullptr)
     {
         stats.m_rekey_time = std::stoul(value->get_value());
+    }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
     }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_INIT_SPI_KEY);
@@ -501,11 +509,19 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     {
         stats.m_initiator_spi = std::stoull(value->get_value(), nullptr, 16);
     }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_RESP_SPI_KEY);
     if(value != nullptr)
     {
         stats.m_responder_spi = std::stoull(value->get_value(), nullptr, 16);
+    }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
     }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_STATE_KEY);
@@ -514,6 +530,10 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
         stats.m_conn_state =
                 ipsecd_helper::ike_state_to_ipsec_state(value->get_value());
     }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
 
     //Child SA Section
     section = section->get_item_type<ViciSection>(IPSEC_VICI_CHILD_SAS_KEY);
@@ -521,6 +541,7 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     {
         return ipsec_ret::PARSE_ERR;
     }
+
     section = section->get_item_type<ViciSection>(conn_name);
     if(section == nullptr)
     {
@@ -532,11 +553,19 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     {
         stats.m_sa_lifetime = std::stoul(value->get_value());
     }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_REKEY_TIME_KEY);
     if(value != nullptr)
     {
         stats.m_sa_rekey = std::stoul(value->get_value());
+    }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
     }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_BYTES_IN_KEY);
@@ -544,11 +573,19 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     {
         stats.m_bytes_in = std::stoull(value->get_value());
     }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_BYTES_OUT_KEY);
     if(value != nullptr)
     {
         stats.m_bytes_out = std::stoull(value->get_value());
+    }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
     }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_PACKETS_IN_KEY);
@@ -556,11 +593,19 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     {
         stats.m_packets_in = std::stoull(value->get_value());
     }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_PACKETS_OUT_KEY);
     if(value != nullptr)
     {
         stats.m_packets_out = std::stoull(value->get_value());
+    }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
     }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_SPI_IN_KEY);
@@ -568,11 +613,19 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     {
         stats.m_sa_spi_in = std::stoull(value->get_value(), nullptr, 16);
     }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
+    }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_SPI_OUT_KEY);
     if(value != nullptr)
     {
         stats.m_sa_spi_out = std::stoull(value->get_value(), nullptr, 16);
+    }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
     }
 
     value = section->get_item_type<ViciValue>(IPSEC_VICI_STATE_KEY);
@@ -580,6 +633,10 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     {
         stats.m_sa_state =
                 ipsecd_helper::ike_state_to_ipsec_state(value->get_value());
+    }
+    else
+    {
+        return ipsec_ret::PARSE_ERR;
     }
 
     return ipsec_ret::OK;
