@@ -20,6 +20,7 @@
 *Local Includes
 **********************************/
 #include "ViciSection.h"
+#include "ops-ipsecd.h"
 
 /**********************************
 *Function Declarations
@@ -58,6 +59,21 @@ ViciItem* ViciSection::get_item(const std::string& name) const
     }
 
     return it->second;
+}
+
+bool ViciSection::remove_item(const std::string& name)
+{
+    auto it = m_items.find(name);
+    if(it == m_items.end())
+    {
+        return false;
+    }
+
+    delete it->second;
+
+    m_items.erase(it);
+
+    return true;
 }
 
 ViciItemMapIt ViciSection::begin()

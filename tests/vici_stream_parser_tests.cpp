@@ -455,6 +455,54 @@ TEST_F(ViciStreamParserTestSuite, TestViciSectionIterators)
 }
 
 /**
+ * Objective: Verify that the Vici Section item can be removed
+ **/
+TEST_F(ViciStreamParserTestSuite, TestViciSectionRemoveItem)
+{
+    ViciSection viciSection;
+    std::string itemName = "Test_Name_Value";
+
+    EXPECT_EQ(viciSection.get_size(), 0);
+
+    std::string valueTest = "Test_Value";
+    ViciValue* viciValue = new ViciValue();
+    viciValue->set_value(valueTest);
+    viciSection.set_item(itemName, viciValue);
+
+    EXPECT_EQ(viciSection.get_size(), 1);
+
+    EXPECT_TRUE(viciSection.remove_item(itemName));
+
+    EXPECT_EQ(viciSection.get_size(), 0);
+    EXPECT_EQ(viciSection.get_item(itemName), nullptr);
+}
+
+/**
+ * Objective: Verify that the Vici Section item will not be remove if given the
+ * wrong name
+ **/
+TEST_F(ViciStreamParserTestSuite, TestViciSectionRemoveItemNotFound)
+{
+    ViciSection viciSection;
+    std::string itemName = "Test_Name_Value";
+    std::string itemNameWrong = "Test_Name_Value_Wrong";
+
+    EXPECT_EQ(viciSection.get_size(), 0);
+
+    std::string valueTest = "Test_Value";
+    ViciValue* viciValue = new ViciValue();
+    viciValue->set_value(valueTest);
+    viciSection.set_item(itemName, viciValue);
+
+    EXPECT_EQ(viciSection.get_size(), 1);
+
+    EXPECT_FALSE(viciSection.remove_item(itemNameWrong));
+
+    EXPECT_EQ(viciSection.get_size(), 1);
+    EXPECT_NE(viciSection.get_item(itemName), nullptr);
+}
+
+/**
  * Objective: Verify that the Vici Stream Parser, Parse Status will be correctly
  * returned.
  **/

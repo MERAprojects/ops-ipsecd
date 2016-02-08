@@ -119,6 +119,15 @@ class ViciSection : public ViciItem
         ViciItem* get_item(const std::string& name) const;
 
         /**
+         * Removes an item from the Section's map
+         *
+         * @param name Name of the Item
+         *
+         * @return true if removed
+         */
+        bool remove_item(const std::string& name);
+
+        /**
          * Gets a Vici Item from the Section's map cast to a Type
          *
          * @param name Name of the item
