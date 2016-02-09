@@ -126,23 +126,81 @@ enum class ipsec_credential_type : uint32_t
 
 enum class ipsec_state : int32_t
 {
+    /**
+     * Error in the Configuration, it was not able to be set
+     */
     config_error = -10000,
 
     /////////////////////
 
+    /**
+     * Configuration was accepted, but not applied yet
+     */
     config_ok = 0,
+
+    /**
+     * Connection has been created, but not yet establish
+     */
     created,
+
+    /**
+     * Connection is trying to connect
+     */
     connecting,
+
+    /**
+     * IKE Connection is not been managed by IKE Daemon(strongSWAN)
+     */
     passive,
+
+    /**
+     * Connection is renewing its keys
+     */
     rekeying,
+
+    /**
+     * Deleting the connection information (in progress)
+     */
     deleting,
+
+    /**
+     * Destroyed the connection
+     */
     destroying,
+
+    /**
+     * SPD installed but no SAD Entries
+     */
     routed,
+
+    /**
+     * Trying to install the policies into the kernel
+     */
     installing,
+
+    /**
+     * Updating connection with new information
+     */
     updating,
+
+    /**
+     * Connections has changed its keys
+     */
     rekeyed,
+
+    /**
+     * Retrying to connect
+     */
     retrying,
+
+    /**
+     * SA or SP policies has been installed in the kernel
+     */
     installed,
+
+    /**
+     * Connections has been establish
+     */
     establish
 };
 
