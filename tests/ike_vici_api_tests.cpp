@@ -1675,3 +1675,363 @@ TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventRekeyInvalid)
 
     delete retSection;
 }
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventInitiatorSPIInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section->remove_item(IPSEC_VICI_INIT_SPI_KEY);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0);
+    EXPECT_EQ(testStats.m_responder_spi, 0);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_lifetime, 0);
+    EXPECT_EQ(testStats.m_sa_rekey, 0);
+    EXPECT_EQ(testStats.m_bytes_in, 0);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventResponderSPIInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section->remove_item(IPSEC_VICI_RESP_SPI_KEY);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_lifetime, 0);
+    EXPECT_EQ(testStats.m_sa_rekey, 0);
+    EXPECT_EQ(testStats.m_bytes_in, 0);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventStateInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section->remove_item(IPSEC_VICI_STATE_KEY);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0xBBBB);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_lifetime, 0);
+    EXPECT_EQ(testStats.m_sa_rekey, 0);
+    EXPECT_EQ(testStats.m_bytes_in, 0);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventChildSASInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section->remove_item(IPSEC_VICI_CHILD_SAS_KEY);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0xBBBB);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::establish);
+    EXPECT_EQ(testStats.m_sa_lifetime, 0);
+    EXPECT_EQ(testStats.m_sa_rekey, 0);
+    EXPECT_EQ(testStats.m_bytes_in, 0);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventChildSASConnNameInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section = section->get_item_type<ViciSection>(IPSEC_VICI_CHILD_SAS_KEY);
+    section->remove_item(connName);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0xBBBB);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::establish);
+    EXPECT_EQ(testStats.m_sa_lifetime, 0);
+    EXPECT_EQ(testStats.m_sa_rekey, 0);
+    EXPECT_EQ(testStats.m_bytes_in, 0);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventSALifeTimeInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section = section->get_item_type<ViciSection>(IPSEC_VICI_CHILD_SAS_KEY);
+    section = section->get_item_type<ViciSection>(connName);
+    section->remove_item(IPSEC_VICI_LIFE_TIME_KEY);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0xBBBB);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::establish);
+    EXPECT_EQ(testStats.m_sa_lifetime, 0);
+    EXPECT_EQ(testStats.m_sa_rekey, 0);
+    EXPECT_EQ(testStats.m_bytes_in, 0);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventSARekeyInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section = section->get_item_type<ViciSection>(IPSEC_VICI_CHILD_SAS_KEY);
+    section = section->get_item_type<ViciSection>(connName);
+    section->remove_item(IPSEC_VICI_REKEY_TIME_KEY);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0xBBBB);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::establish);
+    EXPECT_EQ(testStats.m_sa_lifetime, 3000);
+    EXPECT_EQ(testStats.m_sa_rekey, 0);
+    EXPECT_EQ(testStats.m_bytes_in, 0);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventSABytesINInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section = section->get_item_type<ViciSection>(IPSEC_VICI_CHILD_SAS_KEY);
+    section = section->get_item_type<ViciSection>(connName);
+    section->remove_item(IPSEC_VICI_BYTES_IN_KEY);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0xBBBB);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::establish);
+    EXPECT_EQ(testStats.m_sa_lifetime, 3000);
+    EXPECT_EQ(testStats.m_sa_rekey, 4000);
+    EXPECT_EQ(testStats.m_bytes_in, 0);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
+
+/**
+ * Objective: Verify that the statistics of a connection will not be retrieve if
+ * Vici Parse Answer does not contain the expected values.
+ **/
+TEST_F(IKEViciAPITestSuite, TestGetConnectionStatsEventSABytesOutInvalid)
+{
+    std::string connName = "TestConn";
+    ipsec_ike_connection_stats testStats;
+    ViciSection* retSection = CreateViciSectionStatsObject();
+
+    SetGetConnectionStatsExpectation(connName, retSection);
+
+    ////////////////////////////////
+
+    ViciSection* section = retSection->get_item_type<ViciSection>(connName);
+    section = section->get_item_type<ViciSection>(IPSEC_VICI_CHILD_SAS_KEY);
+    section = section->get_item_type<ViciSection>(connName);
+    section->remove_item(IPSEC_VICI_BYTES_OUT_KEY);
+
+    EXPECT_EQ(m_ike_vici_api.get_connection_stats(connName, testStats),
+              ipsec_ret::PARSE_ERR);
+
+    EXPECT_EQ(testStats.m_conn_name.compare(connName), 0);
+    EXPECT_EQ(testStats.m_establish_secs, 1000);
+    EXPECT_EQ(testStats.m_rekey_time, 2000);
+    EXPECT_EQ(testStats.m_initiator_spi, 0xAAAA);
+    EXPECT_EQ(testStats.m_responder_spi, 0xBBBB);
+    EXPECT_EQ(testStats.m_conn_state, ipsec_state::establish);
+    EXPECT_EQ(testStats.m_sa_lifetime, 3000);
+    EXPECT_EQ(testStats.m_sa_rekey, 4000);
+    EXPECT_EQ(testStats.m_bytes_in, 5000);
+    EXPECT_EQ(testStats.m_bytes_out, 0);
+    EXPECT_EQ(testStats.m_packets_in, 0);
+    EXPECT_EQ(testStats.m_packets_out, 0);
+    EXPECT_EQ(testStats.m_sa_state, ipsec_state::config_error);
+    EXPECT_EQ(testStats.m_sa_spi_in, 0);
+    EXPECT_EQ(testStats.m_sa_spi_out, 0);
+
+    delete retSection;
+}
