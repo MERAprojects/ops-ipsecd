@@ -15,6 +15,9 @@
 
 cmake_minimum_required (VERSION 2.8)
 
+# Use the OpenSwitch definition to fit with the internal data structures
+add_definitions(-DOPS)
+
 set (IPSEC ops-ipsecd)
 project (${IPSEC})
 set (SRC_DIR src)
@@ -69,6 +72,7 @@ set (SOURCES
         ${SRC_DIR}/ViciList.cpp
         ${SRC_DIR}/ViciSection.cpp
         ${SRC_DIR}/ViciStreamParser.cpp
+        ${SRC_DIR}/UnixctlCommandsUtils.cpp
 )
 
 # Rules to build ops-ipsecd

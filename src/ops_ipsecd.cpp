@@ -22,6 +22,12 @@
 #include <cstdlib>
 #include <signal.h>
 #include <unistd.h>
+#include <string.h>
+
+/**********************************
+*Local Includes
+**********************************/
+#include "UnixctlCommandsUtils.h"
 
 /**
 * Global variable set to true while the program is running
@@ -29,6 +35,11 @@
 */
 static bool g_IsRunning = true;
 
+/**
+* Pointer to g_IsRunning to be used when ipsecd/exit ovs-appctl
+* command is called
+*/
+bool *UnixctlCommandsUtils::is_running = &g_IsRunning;
 
 /**********************************
 *Function Defs
@@ -60,14 +71,18 @@ static void ipsecd_signal_set_mask()
 
 int main( int argc, const char* argv[] )
 {
+
+    UCC->set_unixclt_server(argc,(char **)argv, nullptr);
+
     //Set Signal
     ipsecd_signal_set_mask();
-
     while(g_IsRunning)
     {
+        UCC->run_unixctl();
         usleep(250 * 1000);
+        UCC->wait_unixctl();
     }
-
+    UCC->destroy_unixctl();
     return EXIT_SUCCESS;
 }
 
