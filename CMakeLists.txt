@@ -72,7 +72,9 @@ set (SOURCES
         ${SRC_DIR}/ViciList.cpp
         ${SRC_DIR}/ViciSection.cpp
         ${SRC_DIR}/ViciStreamParser.cpp
+        ${SRC_DIR}/UnixctlCommands.cpp
         ${SRC_DIR}/UnixctlCommandsUtils.cpp
+        ${SRC_DIR}/DebugMode.cpp
 )
 
 # Rules to build ops-ipsecd

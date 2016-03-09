@@ -27,19 +27,16 @@
 /**********************************
 *Local Includes
 **********************************/
-#include "UnixctlCommandsUtils.h"
+#include "DebugMode.h"
+#include "IKEViciAPI.h"
+#include "ViciAPI.h"
+#include "ViciStreamParser.h"
 
 /**
 * Global variable set to true while the program is running
 * it will be set to false when it receives a signal to terminate.
 */
 static bool g_IsRunning = true;
-
-/**
-* Pointer to g_IsRunning to be used when ipsecd/exit ovs-appctl
-* command is called
-*/
-bool *UnixctlCommandsUtils::is_running = &g_IsRunning;
 
 /**********************************
 *Function Defs
@@ -71,18 +68,27 @@ static void ipsecd_signal_set_mask()
 
 int main( int argc, const char* argv[] )
 {
+    ViciAPI vici_api;
+    ViciStreamParser vici_stream_parser(vici_api);
+    IKEViciAPI ikeViciApi(vici_api,vici_stream_parser);
 
-    UCC->set_unixclt_server(argc,(char **)argv, nullptr);
+    if (ikeViciApi.initialize() != ipsec_ret::OK)
+    {
+        exit(EXIT_FAILURE);
+    }
+
+    DebugMode *debugger = DebugMode::createInst(ikeViciApi, argc,
+            (char **) argv);
 
     //Set Signal
     ipsecd_signal_set_mask();
-    while(g_IsRunning)
+    while(g_IsRunning && debugger->uccIsRunning())
     {
-        UCC->run_unixctl();
+        debugger->ucc_run();
         usleep(250 * 1000);
-        UCC->wait_unixctl();
+        debugger->ucc_wait();
     }
-    UCC->destroy_unixctl();
+    debugger->ucc_destroy();
     return EXIT_SUCCESS;
 }
 

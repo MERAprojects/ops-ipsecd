@@ -33,14 +33,7 @@ extern  "C" {
 class UnixctlCommandsUtils
 {
     public:
-
-        /*
-        * Pointer to g_IsRunning global variable used to stop the
-        * ops-ipsecd daemon
-        */
-        static bool *is_running;
-
-        /**
+         /**
         * Get a static UnixctlCommandsUtils instance
         */
          static UnixctlCommandsUtils *getInst()
@@ -99,11 +92,22 @@ class UnixctlCommandsUtils
         */
          void usage();
 
+        /**
+        * Method to get the current state for UCC
+        */
+        bool uccIsRunning();
+
     private:
         int *argc = nullptr;
         char *unixctl_pathp = nullptr;
         char **argv = nullptr;
         struct unixctl_server *appctl = nullptr;
+
+        /**
+        * Variable to control the interaction between ops-ipsecd and
+        * UCC. This variable is changed when ipsecd/exit command is called
+        */
+        bool is_ucc_running = true;
 
         /**
         * The only one instance for this class
@@ -117,6 +121,21 @@ class UnixctlCommandsUtils
         * Handle used by unixctl when ipsecd/exit is called
         */
         static void ipsecd_unixctl_exit(struct unixctl_conn* conn, int argc_c,
-                const char* argv_c[], void *auxListener);
+                const char* argv_c[], void *this_copy);
+        /**
+        * Handle used by unixctl when ipsecd/connection is called
+        */
+        static void ipsecd_unixctl_connection(struct unixctl_conn* conn,
+                int argc_c, const char* argv_c[], void *auxListener);
+        /**
+        * Handle used by unixctl when ipsecd/debug is called
+        */
+        static void ipsecd_unixctl_debug(struct unixctl_conn* conn,
+                int argc_c, const char* argv_c[], void *auxListener);
+        /**
+        * Handle used by unixctl when ipsecd/help is called
+        */
+        static void ipsecd_unixctl_help(struct unixctl_conn* conn,
+                int argc_c, const char* argv_c[], void *auxListener);
 };
 #endif /*__UNIXCTL_COMMANDS_UTILS*/

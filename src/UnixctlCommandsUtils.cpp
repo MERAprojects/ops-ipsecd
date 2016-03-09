@@ -23,10 +23,12 @@
 #include <cstdlib>
 #include <cstring>
 
+
 /**********************************
 *Local Includes
 **********************************/
 #include "UnixctlCommandsUtils.h"
+#include "UnixctlCommands.h"
 
 extern  "C" {
 #include <command-line.h>
@@ -116,11 +118,87 @@ void UnixctlCommandsUtils::parse_options()
 
 void UnixctlCommandsUtils::ipsecd_unixctl_exit(struct unixctl_conn *conn,
         int argc_c OVS_UNUSED, const char *argv_c[] OVS_UNUSED,
-        void *Is_Running_ = nullptr)
+        void *this_copy)
 {
-    *is_running = false;
-    unixctl_command_reply(conn, nullptr);
+    UnixctlCommandsUtils *self = static_cast<UnixctlCommandsUtils*> (this_copy);
+    self->is_ucc_running = false;
+    std::string message = "\n ops-ipsecd daemon is shutting down now... \n";
+    unixctl_command_reply(conn, message.c_str());
+}
 
+void UnixctlCommandsUtils::ipsecd_unixctl_connection(struct unixctl_conn *conn,
+        int argc OVS_UNUSED, const char *argv[] OVS_UNUSED,
+        void *auxListener = nullptr)
+{
+    /**
+    * Message to talk with the unixctl.ctl server
+    */
+    std::string message = "";
+    ipsec_ret result = ipsec_ret::OK;
+
+    result = ipsecd_ucc_create_connection(argc, argv, message);
+    if (result == ipsec_ret::OK)
+    {
+        unixctl_command_reply(conn, message.c_str());
+    }
+    else
+    {
+        message.assign("Error creating a new connection, " \
+            "please check your input arguments and try again " \
+            "Error " + std::to_string(static_cast<int>(result)) +  " \n");
+        unixctl_command_reply_error(conn, message.c_str());
+    }
+}
+
+void UnixctlCommandsUtils::ipsecd_unixctl_debug(struct unixctl_conn* conn,
+        int argc OVS_UNUSED, const char* argv[] OVS_UNUSED,
+        void *auxListener = nullptr)
+{
+    /**
+    * Message to talk with the unixctl.ctl server
+    */
+    std::string message = "";
+    ipsec_ret result = ipsec_ret::OK;
+
+    result = ipsecd_ucc_debug(argc, argv, message);
+    if (result == ipsec_ret::OK)
+    {
+        unixctl_command_reply(conn, message.c_str());
+    }
+    else
+    {
+        message.assign("Input Error, (use ipsecd/help) " \
+            "please check your input arguments and try again\n");
+        unixctl_command_reply_error(conn, message.c_str());
+    }
+}
+
+void UnixctlCommandsUtils::ipsecd_unixctl_help(struct unixctl_conn* conn,
+        int argc OVS_UNUSED, const char* argv[] OVS_UNUSED,
+        void *auxListener = nullptr)
+{
+    /**
+    * Message to talk with the unixctl.ctl server
+    */
+    std::string message = "";
+    ipsec_ret result = ipsec_ret::OK;
+
+    result = ipsecd_ucc_help(argc, argv, message);
+    if (result == ipsec_ret::OK)
+    {
+        unixctl_command_reply(conn, message.c_str());
+    }
+    else
+    {
+        message.assign("Input Error" \
+            " help command takes no arguments\n");
+        unixctl_command_reply_error(conn, message.c_str());
+    }
+}
+
+bool UnixctlCommandsUtils::uccIsRunning()
+{
+    return is_ucc_running;
 }
 
 void UnixctlCommandsUtils::set_unixclt_server(int argc_c,
@@ -168,5 +246,27 @@ void UnixctlCommandsUtils::register_commands()
 
     /*Register the ovs-appctl 'ipsecd/exit' command for ops-ipsecd daemon */
     unixctl_command_register("ipsecd/exit","",0,0,
-        UnixctlCommandsUtils::ipsecd_unixctl_exit, nullptr);
+        UnixctlCommandsUtils::ipsecd_unixctl_exit, static_cast<void*>(this));
+    /**
+    * Register the ovs-appctl 'ipsecd/connection' command
+    * for ops-ipsecd daemon
+    */
+    unixctl_command_register("ipsecd/connection",
+            "Create a new ipsecd connection",2,27,
+            UnixctlCommandsUtils::ipsecd_unixctl_connection, nullptr);
+
+    /**
+    * Register the ovs-appctl 'ipsecd/debug' command
+    * for ops-ipsecd daemon
+    */
+    unixctl_command_register("ipsecd/debug",
+            "Enable/disable Debugger Mode for ops-ipsecd",1,1,
+            UnixctlCommandsUtils::ipsecd_unixctl_debug, nullptr);
+    /**
+    * Register the ovs-appctl 'ipsecd/help' command
+    * for ops-ipsecd daemon
+    */
+    unixctl_command_register("ipsecd/help",
+            "Show usage for all ops-ipsecd commands", 0, 0,
+            UnixctlCommandsUtils::ipsecd_unixctl_help, nullptr);
 }
