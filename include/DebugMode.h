@@ -104,28 +104,33 @@ class DebugMode
         /**
         * Get connection stats from IKEViciAPI object
         */
-        ipsec_ret get_connection_stats(const std::string conn_name,
+        ipsec_ret get_connection_stats(const std::string& conn_name,
                 ipsec_ike_connection_stats& stats);
         /**
         * Start a connection created before
         */
-        ipsec_ret start_connection(const std::string conn_name,
+        ipsec_ret start_connection(const std::string& conn_name,
                 uint32_t timeout_ms);
         /**
         * Stop a connection created before
         */
-        ipsec_ret stop_connection(const std::string conn_name,
+        ipsec_ret stop_connection(const std::string& conn_name,
                 uint32_t timeout_ms);
 
         /**
         * Delete a connection created before
         */
-        ipsec_ret delete_connection(const std::string conn_name);
+        ipsec_ret delete_connection(const std::string& conn_name);
 
         /**
         * Create a new connection
         */
-        ipsec_ret create_connection(const ipsec_ike_connection conn);
+        ipsec_ret create_connection(const ipsec_ike_connection& conn);
+
+        /**
+        * Load credential to memory
+        */
+        ipsec_ret load_credential(const ipsec_credential& cred);
 
         /**
         * Get the current state for UCC

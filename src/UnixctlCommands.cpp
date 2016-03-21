@@ -249,6 +249,95 @@ static bool ipsec_ucc_set_mode(const std::string value,
 
 }
 
+const char* state_to_str(ipsec_state state)
+{
+    switch(state)
+    {
+        case ipsec_state::config_error:
+            return "config error";
+        case ipsec_state::config_ok:
+            return "config ok";
+        case ipsec_state::created:
+            return "created";
+        case ipsec_state::connecting:
+            return "connecting";
+        case ipsec_state::passive:
+            return "passive";
+        case ipsec_state::rekeying:
+            return "rekeying";
+        case ipsec_state::deleting:
+            return "deleting";
+        case ipsec_state::destroying:
+            return "destroying";
+        case ipsec_state::routed:
+            return "routed";
+        case ipsec_state::installing:
+            return "installing";
+        case ipsec_state::updating:
+            return "updating";
+        case ipsec_state::rekeyed:
+            return "rekeyed";
+        case ipsec_state::retrying:
+            return "retrying";
+        case ipsec_state::installed:
+            return "installed";
+        case ipsec_state::establish:
+            return "establish";
+        default:
+            return "";
+    }
+}
+
+static bool get_connection_stats(const std::string conn_name,
+        std::string &msg)
+{
+    ipsec_ike_connection_stats stats;
+    /*Debug object*/
+    DebugMode *debugger = DebugMode::getInst();
+
+
+    if(debugger->get_connection_stats(conn_name, stats) != ipsec_ret::OK)
+    {
+        return false;
+    }
+
+    msg.append("\n\n");
+    msg.append("Name of the Connection              : " + \
+        stats.m_conn_name + "\n");
+    msg.append("Seconds since been establish        : " + \
+        std::to_string(stats.m_establish_secs) + "\n");
+    msg.append("Initiator SPI/Cookie                : " + \
+        std::to_string(stats.m_initiator_spi) + "\n");
+    msg.append("Responder SPI/Cookie                : " + \
+        std::to_string(stats.m_responder_spi) + "\n");
+    msg.append("Seconds till IKE connection re-keys : " + \
+        std::to_string(stats.m_rekey_time) +"\n");
+    msg.append("State of the IKE Connection         : ");
+    msg.append(state_to_str(stats.m_conn_state));
+    msg.append("\n");
+    msg.append("Seconds before SA expires           : " + \
+        std::to_string(stats.m_sa_lifetime) + "\n");
+    msg.append("Seconds before SA re-keys           : " + \
+        std::to_string(stats.m_sa_rekey) + "\n");
+    msg.append("Number of input bytes processed     : " + \
+        std::to_string(stats.m_bytes_in) + "\n");
+    msg.append("Number of output bytes processed    : " + \
+        std::to_string(stats.m_bytes_out) + "\n");
+    msg.append("Number of input packets processed   : " + \
+        std::to_string(stats.m_packets_in) + "\n");
+    msg.append("Number of output packets processed  : " + \
+        std::to_string(stats.m_packets_out) + "\n");
+    msg.append("State of the SA                     : ");
+    msg.append(state_to_str(stats.m_sa_state));
+    msg.append("\n");
+    msg.append("Inbound SA SPI                      : " + \
+        std::to_string(stats.m_sa_spi_in) + "\n");
+    msg.append("Outbound SA SPI                     : " + \
+        std::to_string(stats.m_sa_spi_out) + "\n");
+
+    return true;
+}
+
 static void ipsec_ucc_connection_usage(std::string &msg)
 {
     msg.append(" \n\nUsage: ipsecd/connection create PARAM [VALUES]\n\n"
@@ -264,12 +353,16 @@ static void ipsec_ucc_connection_usage(std::string &msg)
         "    cipher [aes,aes256,3des]  [aes,aes256,3des] \n"
         "    authmode [esp, ah] \n"
         "    dgroup [none, 2, 14]\n\n"
-        "ipsecd/connection delete [name_of_connection] \n\n");
+        "ipsecd/connection delete [name_of_connection] \n\n"
+        "ipsecd/connection start [name_of_connection] [timeout]\n\n"
+        "ipsecd/connection stop [name_of_connection] [timeout] \n\n"
+        "ipsecd/connection stats [name_of_connection] \n\n"
+        "ipsecd/connection loadpsk [psk] \n\n");
 }
 
 static void ipsec_ucc_debug_usage(std::string &msg)
 {
-    msg.append("Usage: ipsecd/debug [VALUES] \n\n"
+    msg.append("\n\nUsage: ipsecd/debug [VALUES] \n\n"
         "Where valid VALUES are: \n"
         "enable  : enable debugger Mode\n"
         "disable : disable debugger Mode\n\n");
@@ -331,10 +424,11 @@ ipsec_ret ipsecd_ucc_create_connection(int argc, const char **argv,
         STOP,
         DELETE,
         STATS,
-        CREATE
+        CREATE,
+        LOADPSK
     };
     /**
-    * Key words for ovs-appctl "ipsecd/connect" command
+    * Key words for ovs-appctl "ipsecd/connection" command
     */
     const std::string conn_params[] = {
         "name",
@@ -352,11 +446,12 @@ ipsec_ret ipsecd_ucc_create_connection(int argc, const char **argv,
         "stop",
         "delete",
         "stats",
-        "create"
+        "create",
+        "loadpsk"
     };
 
     /*Number of keywords allowed for this command*/
-    const int k_allowed     = 16;
+    const int k_allowed     = 17;
 
     /*Min number of arguments allowed for this command*/
     const int argc_allowed = 2;
@@ -379,6 +474,9 @@ ipsec_ret ipsecd_ucc_create_connection(int argc, const char **argv,
 
     /*New connection*/
     ipsec_ike_connection conn;
+
+    /*Credentials*/
+    ipsec_credential cred;
 
     /*Debug object*/
     DebugMode *debugger = DebugMode::getInst();
@@ -571,6 +669,7 @@ ipsec_ret ipsecd_ucc_create_connection(int argc, const char **argv,
                         }
                         else
                         {
+                            printf("Args %s %s\n",next_str.c_str(),in_word.c_str());
                             return result;
                         }
                     }
@@ -580,7 +679,26 @@ ipsec_ret ipsecd_ucc_create_connection(int argc, const char **argv,
                     }
                     break;
                 case STOP:
-                    /*TODO stop subcommand wip*/
+                    if (argc == 4)
+                    {
+                        next_str.assign(argv[c_index+1]);
+                        in_word.assign(argv[c_index+2]);
+                        result = debugger->stop_connection(next_str,
+                                std::stoi(in_word,nullptr,0));
+                        if (result == ipsec_ret::OK)
+                        {
+                            message.append("\n\n Done \n\n");
+                            return ipsec_ret::OK;
+                        }
+                        else
+                        {
+                            return result;
+                        }
+                    }
+                    else
+                    {
+                        goto input_error;
+                    }
                     break;
                 case DELETE:
                     if (argc == 3)
@@ -599,10 +717,41 @@ ipsec_ret ipsecd_ucc_create_connection(int argc, const char **argv,
                     }
                     break;
                 case STATS:
-                    /*TODO stats subcommand wip*/
+                    if (argc == 3)
+                    {
+                        next_str.assign(argv[c_index+1]);
+                        if(!get_connection_stats(next_str, message))
+                        {
+                            message.append("\n\nConnection not found\n\n");
+                            return ipsec_ret::NOT_FOUND;
+                        }
+                        return ipsec_ret::OK;
+                    }
+                    else
+                    {
+                        goto input_error;
+                    }
                     break;
                 case CREATE:
                     c_index = c_index + 1;
+                    break;
+                case LOADPSK:
+                    if (argc == 3)
+                    {
+                        cred.m_psk.assign(argv[c_index + 1]);
+                        result = debugger->load_credential(cred);
+                        if(result != ipsec_ret::OK)
+                        {
+                            message.append("\n\nUnable to set psk\n\n");
+                            return ipsec_ret::NOT_FOUND;
+                        }
+                        message.append("\n\n Done\n\n");
+                        return ipsec_ret::OK;
+                    }
+                    else
+                    {
+                        goto input_error;
+                    }
                     break;
                 default:
                     goto input_error;

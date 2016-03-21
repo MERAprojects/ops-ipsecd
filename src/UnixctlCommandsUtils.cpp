@@ -107,7 +107,7 @@ void UnixctlCommandsUtils::parse_options()
         /*TODO show the path of the socket on which ovsdb-server
         * is listening if it's required with ovs_rundir function
         */
-        printf("unix:/var/run/openvswitch/db.sock\n");
+        //printf("unix:/var/run/openvswitch/db.sock\n");
     }
     else
     {
@@ -143,8 +143,8 @@ void UnixctlCommandsUtils::ipsecd_unixctl_connection(struct unixctl_conn *conn,
     }
     else
     {
-        message.assign("Error creating a new connection, " \
-            "please check your input arguments and try again " \
+        message.assign("Transaction error, " \
+            "please check your input arguments and try again, " \
             "Error " + std::to_string(static_cast<int>(result)) +  " \n");
         unixctl_command_reply_error(conn, message.c_str());
     }

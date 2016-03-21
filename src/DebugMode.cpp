@@ -68,30 +68,35 @@ void DebugMode::ucc_destroy()
     m_unixcmds->destroy_unixctl();
 }
 
-ipsec_ret DebugMode::create_connection(const ipsec_ike_connection conn)
+ipsec_ret DebugMode::create_connection(const ipsec_ike_connection& conn)
 {
     return m_ikeviciApi.create_connection(conn);
 }
 
-ipsec_ret DebugMode::stop_connection(const std::string conn_name,
+ipsec_ret DebugMode::stop_connection(const std::string& conn_name,
         uint32_t timeout_ms)
 {
     return m_ikeviciApi.stop_connection(conn_name, timeout_ms);
 }
 
-ipsec_ret DebugMode::delete_connection(const std::string conn_name)
+ipsec_ret DebugMode::delete_connection(const std::string& conn_name)
 {
     return m_ikeviciApi.delete_connection(conn_name);
 }
 
-ipsec_ret DebugMode::start_connection(const std::string conn_name,
+ipsec_ret DebugMode::start_connection(const std::string& conn_name,
         uint32_t timeout_ms)
 {
     return m_ikeviciApi.start_connection(conn_name, timeout_ms);
 }
 
-ipsec_ret DebugMode::get_connection_stats(const std::string conn_name,
+ipsec_ret DebugMode::get_connection_stats(const std::string& conn_name,
         ipsec_ike_connection_stats& stats)
 {
     return m_ikeviciApi.get_connection_stats(conn_name, stats);
+}
+
+ipsec_ret DebugMode::load_credential(const ipsec_credential& cred)
+{
+    return m_ikeviciApi.load_credential(cred);
 }
