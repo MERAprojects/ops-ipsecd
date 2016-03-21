@@ -1257,6 +1257,66 @@ TEST_F(IKEViciAPITestSuite, TestLoadCredentialPSK)
     ipsec_credential cred;
     cred.m_cred_type    = ipsec_credential_type::psk;
     cred.m_psk          = "TestPSK";
+    cred.m_psk_owners.push_back("Owner1");
+    cred.m_psk_owners.push_back("Owner2");
+    cred.m_psk_owners.push_back("Owner3");
+
+    m_ike_vici_api.set_is_ready(true);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    {
+        InSequence s;
+
+        EXPECT_CALL(m_vici_api, begin(StrEq(IPSEC_VICI_LOAD_SHARED)))
+                    .WillOnce(Return(reqTest));
+
+        EXPECT_CALL(m_vici_api, add_key_value_str(Eq(reqTest),
+                                              StrEq(IPSEC_VICI_DATA),
+                                              StrEq(cred.m_psk)));
+
+        EXPECT_CALL(m_vici_api, begin_list(Eq(reqTest),
+                                           StrEq(IPSEC_VICI_OWNERS)));
+
+
+        for(auto owner : cred.m_psk_owners)
+        {
+            EXPECT_CALL(m_vici_api, add_list_item(Eq(reqTest),
+                                                  StrEq(owner.c_str())));
+        }
+
+        EXPECT_CALL(m_vici_api, end_list(Eq(reqTest)));
+
+        EXPECT_CALL(m_vici_api, add_key_value_str(Eq(reqTest),
+                        StrEq(IPSEC_VICI_TYPE),
+                        StrEq(ipsecd_helper::cred_to_str(cred.m_cred_type))));
+
+        EXPECT_CALL(m_vici_api, submit(Eq(reqTest), Eq(viciConnTest)))
+                    .WillOnce(Return(resTest));
+    }
+
+    EXPECT_CALL(m_vici_api, find_str(Eq(resTest), StrEq(""),
+                StrEq(IPSEC_VICI_SUCCESS))).WillOnce(Return("yes"));
+
+    EXPECT_CALL(m_vici_api, free_res(Eq(resTest)));
+
+    EXPECT_EQ(m_ike_vici_api.load_credential(cred),
+              ipsec_ret::OK);
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify Load Credential will add a PSK Credential with no Owners
+ **/
+TEST_F(IKEViciAPITestSuite, TestLoadCredentialPSKNoOwners)
+{
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+    vici_req_t* reqTest = (vici_req_t*)0x200;
+    vici_res_t* resTest = (vici_res_t*)0x300;
+
+    ipsec_credential cred;
+    cred.m_cred_type    = ipsec_credential_type::psk;
+    cred.m_psk          = "TestPSK";
+    cred.m_psk_owners.clear();
 
     m_ike_vici_api.set_is_ready(true);
     m_ike_vici_api.set_vici_connection(viciConnTest);

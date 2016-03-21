@@ -391,7 +391,17 @@ ipsec_ret IKEViciAPI::load_credential(const ipsec_credential& cred)
         m_vici_api.add_key_value_str(req, IPSEC_VICI_DATA,
                                      cred.m_psk);
 
-        //TODO: Missing Owners
+        if(!cred.m_psk_owners.empty())
+        {
+            m_vici_api.begin_list(req, IPSEC_VICI_OWNERS);
+
+            for(auto owner : cred.m_psk_owners)
+            {
+                m_vici_api.add_list_item(req, owner);
+            }
+
+            m_vici_api.end_list(req); //End IPSEC_VICI_OWNERS
+        }
     }
     else
     {

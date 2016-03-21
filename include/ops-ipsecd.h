@@ -21,6 +21,7 @@
 /**********************************
 *System Includes
 **********************************/
+#include <list>
 #include <string>
 #include <stdint.h>
 #include <arpa/inet.h>
@@ -353,21 +354,21 @@ struct ipsec_credential
     /**
      * Type of Credential
      */
-    ipsec_credential_type m_cred_type   = ipsec_credential_type::psk;
+    ipsec_credential_type m_cred_type       = ipsec_credential_type::psk;
 
     /**
      * Pre-shared Key Value
      */
-    std::string m_psk                   = "";
-    //TODO: Missing Owners
+    std::string m_psk                       = "";
+    std::list<std::string> m_psk_owners;
 
     /**
      * RSA loaded in memory
      */
     struct
     {
-        uint8_t* m_data                 = nullptr;
-        uint32_t m_len                  = 0;
+        uint8_t* m_data                     = nullptr;
+        uint32_t m_len                      = 0;
     } m_rsa;
 };
 
