@@ -24,6 +24,7 @@
 #include <list>
 #include <string>
 #include <stdint.h>
+#include <sys/mman.h>
 #include <arpa/inet.h>
 
 /**********************************
@@ -65,6 +66,9 @@ enum class ipsec_ret : int32_t
     NOT_PARSE,
     PARSE_ERR,
     REGISTER_FAILED,
+    MMAP_FAILED,
+    OPEN_FAILED,
+    SSTAT_FAILED,
 
     //Add Errors before this line
     OK = 0
