@@ -704,7 +704,7 @@ ipsec_ret IKEViciAPI::load_authority(const ipsec_ca& ca)
 
             m_vici_api.free_res(res);
 
-            return ipsec_ret::STOP_FAILED;
+            return ipsec_ret::ADD_FAILED;
         }
 
         m_vici_api.free_res(res);

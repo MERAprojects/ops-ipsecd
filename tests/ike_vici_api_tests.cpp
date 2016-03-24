@@ -2404,3 +2404,135 @@ TEST_F(IKEViciAPITestSuite, TestLoadAuthority)
     EXPECT_EQ(m_ike_vici_api.load_authority(ca), ipsec_ret::OK);
     EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
 }
+
+/**
+ * Objective: Verify that if a submit load authority fails
+ * an error will be return
+ **/
+TEST_F(IKEViciAPITestSuite, TestLoadAuthoritySubmitFailed)
+{
+    ipsec_ca ca;
+    ca.m_cert_file_path = "CACert.pem";
+    ca.m_name ="CATest";
+
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+    vici_req_t* reqTest = (vici_req_t*)0x200;
+
+    const void* file_map = (const void*)0x400;
+    uint32_t size = 111;
+
+    m_ike_vici_api.set_is_ready(true);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    EXPECT_CALL(m_map_file, map_file(StrEq(ca.m_cert_file_path)))
+                    .WillOnce(Return(ipsec_ret::OK));
+
+    EXPECT_CALL(m_map_file, get_map_file())
+                    .WillOnce(Return(file_map));
+
+    EXPECT_CALL(m_map_file, get_size())
+                    .WillOnce(Return(size));
+
+    {
+        InSequence s;
+
+        EXPECT_CALL(m_vici_api, begin(StrEq(IPSEC_VICI_LOAD_AUTHORITY)))
+                    .WillOnce(Return(reqTest));
+
+        EXPECT_CALL(m_vici_api, begin_section(Eq(reqTest),
+                                              StrEq(ca.m_name)));
+
+        EXPECT_CALL(m_vici_api, add_key_value(Eq(reqTest),
+                                              StrEq(IPSEC_VICI_CA_CERT),
+                                              Eq(file_map),
+                                              Eq(size)));
+
+        EXPECT_CALL(m_vici_api, end_section(Eq(reqTest)));
+
+        EXPECT_CALL(m_vici_api, submit(Eq(reqTest), Eq(viciConnTest)))
+                    .WillOnce(Return(nullptr));
+    }
+
+    EXPECT_EQ(m_ike_vici_api.load_authority(ca), ipsec_ret::ERR);
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify that if a start connection fails
+ * an error will be return
+ **/
+TEST_F(IKEViciAPITestSuite, TestLoadAuthorityFails)
+{
+    ipsec_ca ca;
+    ca.m_cert_file_path = "CACert.pem";
+    ca.m_name ="CATest";
+
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+    vici_req_t* reqTest = (vici_req_t*)0x200;
+    vici_res_t* resTest = (vici_res_t*)0x300;
+
+    const void* file_map = (const void*)0x400;
+    uint32_t size = 111;
+
+    m_ike_vici_api.set_is_ready(true);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    EXPECT_CALL(m_map_file, map_file(StrEq(ca.m_cert_file_path)))
+                    .WillOnce(Return(ipsec_ret::OK));
+
+    EXPECT_CALL(m_map_file, get_map_file())
+                    .WillOnce(Return(file_map));
+
+    EXPECT_CALL(m_map_file, get_size())
+                    .WillOnce(Return(size));
+
+    {
+        InSequence s;
+
+        EXPECT_CALL(m_vici_api, begin(StrEq(IPSEC_VICI_LOAD_AUTHORITY)))
+                    .WillOnce(Return(reqTest));
+
+        EXPECT_CALL(m_vici_api, begin_section(Eq(reqTest),
+                                              StrEq(ca.m_name)));
+
+        EXPECT_CALL(m_vici_api, add_key_value(Eq(reqTest),
+                                              StrEq(IPSEC_VICI_CA_CERT),
+                                              Eq(file_map),
+                                              Eq(size)));
+
+        EXPECT_CALL(m_vici_api, end_section(Eq(reqTest)));
+
+        EXPECT_CALL(m_vici_api, submit(Eq(reqTest), Eq(viciConnTest)))
+                    .WillOnce(Return(resTest));
+    }
+
+    EXPECT_CALL(m_vici_api, find_str(Eq(resTest), StrEq(""),
+                StrEq(IPSEC_VICI_SUCCESS))).WillOnce(Return("no"));
+
+    EXPECT_CALL(m_vici_api, free_res(Eq(resTest)));
+
+    EXPECT_EQ(m_ike_vici_api.load_authority(ca), ipsec_ret::ADD_FAILED);
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify that an Load Authority will return the correct error
+ * of MMAP Fails
+ **/
+TEST_F(IKEViciAPITestSuite, TestLoadAuthorityMMAPFailed)
+{
+    ipsec_ca ca;
+    ca.m_cert_file_path = "CACert.pem";
+    ca.m_name ="CATest";
+
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+
+    m_ike_vici_api.set_is_ready(true);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    EXPECT_CALL(m_map_file, map_file(StrEq(ca.m_cert_file_path)))
+                    .WillOnce(Return(ipsec_ret::ERR));
+
+    EXPECT_EQ(m_ike_vici_api.load_authority(ca), ipsec_ret::ERR);
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
