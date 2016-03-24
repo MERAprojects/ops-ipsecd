@@ -75,6 +75,7 @@ set (SOURCES
         ${SRC_DIR}/UnixctlCommands.cpp
         ${SRC_DIR}/UnixctlCommandsUtils.cpp
         ${SRC_DIR}/DebugMode.cpp
+        ${SRC_DIR}/SystemCalls.cpp
 )
 
 # Rules to build ops-ipsecd
