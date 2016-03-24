@@ -67,24 +67,14 @@ class MapFile_EnO : public MapFile
         {
         }
 
-        uint32_t get_size()
-        {
-            return m_size;
-        }
-
         void set_size(uint32_t value)
         {
             m_size = value;
         }
 
-        void* get_map_file()
-        {
-            return m_map_File;
-        }
-
         void set_map_file(void* value)
         {
-            m_map_File = value;
+            m_map_file = value;
         }
 
         void call_unmap_file()
@@ -233,4 +223,28 @@ TEST_F(MapFileTestSuite, TestUnmap)
     m_MapFile.call_unmap_file();
     EXPECT_EQ(m_MapFile.get_map_file(), nullptr);
     EXPECT_EQ(m_MapFile.get_size(), 0);
+}
+
+/**
+ * Objective: Verify that Map File method get size works
+ **/
+TEST_F(MapFileTestSuite, TestGetSize)
+{
+    uint32_t size = 111;
+
+    m_MapFile.set_size(size);
+
+    EXPECT_EQ(m_MapFile.get_size(), size);
+}
+
+/**
+ * Objective: Verify that Map File method get map file works
+ **/
+TEST_F(MapFileTestSuite, TestGetMapFile)
+{
+    void* file_map = (void*)0x100;
+
+    m_MapFile.set_map_file(file_map);
+
+    EXPECT_EQ(m_MapFile.get_map_file(), file_map);
 }

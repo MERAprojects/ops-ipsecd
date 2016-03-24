@@ -39,11 +39,11 @@ MapFile::~MapFile()
 
 void MapFile::unmap_file()
 {
-    if(m_map_File != nullptr)
+    if(m_map_file != nullptr)
     {
-        m_SystemCalls.s_munmap(m_map_File, m_size);
+        m_SystemCalls.s_munmap(m_map_file, m_size);
 
-        m_map_File = nullptr;
+        m_map_file = nullptr;
         m_size = 0;
     }
 }
@@ -70,11 +70,11 @@ ipsec_ret MapFile::map_file(const std::string& filepath)
     m_size = s.st_size;
 
     /* Memory-map the file. */
-    m_map_File = m_SystemCalls.s_mmap(0, m_size, PROT_READ,
+    m_map_file = m_SystemCalls.s_mmap(0, m_size, PROT_READ,
                                        MAP_PRIVATE, fd, 0);
-    if (m_map_File == MAP_FAILED)
+    if (m_map_file == MAP_FAILED)
     {
-        m_map_File = nullptr;
+        m_map_file = nullptr;
 
         return ipsec_ret::MMAP_FAILED;
     }

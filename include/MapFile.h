@@ -50,7 +50,7 @@ class MapFile
         /**
          * Map File
          */
-        void* m_map_File = nullptr;
+        void* m_map_file = nullptr;
 
         /**
          * Unmap the File
@@ -77,6 +77,16 @@ class MapFile
          * @param filepath File path of the file to map
          */
         ipsec_ret map_file(const std::string& filepath);
+
+        inline const void* get_map_file() const
+        {
+            return m_map_file;
+        }
+
+        inline uint32_t get_size() const
+        {
+            return m_size;
+        }
 };
 
 #endif /* MAPFILE_H */
