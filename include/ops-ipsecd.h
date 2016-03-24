@@ -69,6 +69,7 @@ enum class ipsec_ret : int32_t
     MMAP_FAILED,
     OPEN_FAILED,
     SSTAT_FAILED,
+    REMOVE_FAILED,
 
     //Add Errors before this line
     OK = 0

@@ -133,6 +133,15 @@ class IIKEAPI
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
         virtual ipsec_ret load_authority(const ipsec_ca& ca) = 0;
+
+        /**
+         * Unloads a CA from memory
+         *
+         * @param ca_name Certificate Authority Name
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret unload_authority(const std::string& ca_name) = 0;
 };
 
 #endif /* IIKEAPI_H */

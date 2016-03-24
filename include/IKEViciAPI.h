@@ -144,6 +144,11 @@ class IKEViciAPI : public IIKEAPI
          * @copydoc IIKEAPI::load_authority
          */
         ipsec_ret load_authority(const ipsec_ca& ca) override;
+
+        /**
+         * @copydoc IIKEAPI::unload_authority
+         */
+        ipsec_ret unload_authority(const std::string& ca_name) override;
 };
 
 #endif /* IKEVICIAPI_H */

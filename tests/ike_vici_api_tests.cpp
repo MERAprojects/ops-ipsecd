@@ -2458,7 +2458,7 @@ TEST_F(IKEViciAPITestSuite, TestLoadAuthoritySubmitFailed)
 }
 
 /**
- * Objective: Verify that if a start connection fails
+ * Objective: Verify that if a Load Authority fails
  * an error will be return
  **/
 TEST_F(IKEViciAPITestSuite, TestLoadAuthorityFails)
@@ -2534,5 +2534,147 @@ TEST_F(IKEViciAPITestSuite, TestLoadAuthorityMMAPFailed)
                     .WillOnce(Return(ipsec_ret::ERR));
 
     EXPECT_EQ(m_ike_vici_api.load_authority(ca), ipsec_ret::ERR);
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify Unload Authority will not work if Is Ready is false
+ **/
+TEST_F(IKEViciAPITestSuite, TestUnloadAuthorityIsReadyFalse)
+{
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+
+    m_ike_vici_api.set_is_ready(false);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    std::string ca_name ="TestCA";
+
+    EXPECT_EQ(m_ike_vici_api.unload_authority(ca_name), ipsec_ret::NOT_READY);
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify that if an empty string is pass as a name an error is
+ * returned
+ **/
+TEST_F(IKEViciAPITestSuite, TestUnloadAuthorityEmptyName)
+{
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+
+    m_ike_vici_api.set_is_ready(true);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    std::string ca_name ="";
+
+    EXPECT_EQ(m_ike_vici_api.unload_authority(ca_name), ipsec_ret::EMPTY_STRING);
+
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify that an Authority can be unloaded
+ **/
+TEST_F(IKEViciAPITestSuite, TestUnloadAuthority)
+{
+    std::string ca_name ="TestCA";
+
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+    vici_req_t* reqTest = (vici_req_t*)0x200;
+    vici_res_t* resTest = (vici_res_t*)0x300;
+
+    m_ike_vici_api.set_is_ready(true);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    {
+        InSequence s;
+
+        EXPECT_CALL(m_vici_api, begin(StrEq(IPSEC_VICI_UNLOAD_AUTHORITY)))
+                    .WillOnce(Return(reqTest));
+
+        EXPECT_CALL(m_vici_api, add_key_value_str(Eq(reqTest),
+                                                  StrEq(IPSEC_VICI_NAME),
+                                                  StrEq(ca_name)));
+
+        EXPECT_CALL(m_vici_api, submit(Eq(reqTest), Eq(viciConnTest)))
+                    .WillOnce(Return(resTest));
+    }
+
+    EXPECT_CALL(m_vici_api, find_str(Eq(resTest), StrEq(""),
+                StrEq(IPSEC_VICI_SUCCESS))).WillOnce(Return("yes"));
+
+    EXPECT_CALL(m_vici_api, free_res(Eq(resTest)));
+
+    EXPECT_EQ(m_ike_vici_api.unload_authority(ca_name), ipsec_ret::OK);
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify that if a submit unload authority fails
+ * an error will be return
+ **/
+TEST_F(IKEViciAPITestSuite, TestUnloadAuthoritySubmitFailed)
+{
+    std::string ca_name ="TestCA";
+
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+    vici_req_t* reqTest = (vici_req_t*)0x200;
+
+    m_ike_vici_api.set_is_ready(true);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    {
+        InSequence s;
+
+        EXPECT_CALL(m_vici_api, begin(StrEq(IPSEC_VICI_UNLOAD_AUTHORITY)))
+                    .WillOnce(Return(reqTest));
+
+        EXPECT_CALL(m_vici_api, add_key_value_str(Eq(reqTest),
+                                                  StrEq(IPSEC_VICI_NAME),
+                                                  StrEq(ca_name)));
+
+        EXPECT_CALL(m_vici_api, submit(Eq(reqTest), Eq(viciConnTest)))
+                    .WillOnce(Return(nullptr));
+    }
+
+    EXPECT_EQ(m_ike_vici_api.unload_authority(ca_name), ipsec_ret::ERR);
+    EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
+}
+
+/**
+ * Objective: Verify that if a unload authority fails
+ * an error will be return
+ **/
+TEST_F(IKEViciAPITestSuite, TestUnloadAuthorityFails)
+{
+    std::string ca_name ="TestCA";
+
+    vici_conn_t* viciConnTest = (vici_conn_t*)0x100;
+    vici_req_t* reqTest = (vici_req_t*)0x200;
+    vici_res_t* resTest = (vici_res_t*)0x300;
+
+    m_ike_vici_api.set_is_ready(true);
+    m_ike_vici_api.set_vici_connection(viciConnTest);
+
+    {
+        InSequence s;
+
+        EXPECT_CALL(m_vici_api, begin(StrEq(IPSEC_VICI_UNLOAD_AUTHORITY)))
+                    .WillOnce(Return(reqTest));
+
+        EXPECT_CALL(m_vici_api, add_key_value_str(Eq(reqTest),
+                                                  StrEq(IPSEC_VICI_NAME),
+                                                  StrEq(ca_name)));
+
+        EXPECT_CALL(m_vici_api, submit(Eq(reqTest), Eq(viciConnTest)))
+                    .WillOnce(Return(resTest));
+    }
+
+    EXPECT_CALL(m_vici_api, find_str(Eq(resTest), StrEq(""),
+                StrEq(IPSEC_VICI_SUCCESS))).WillOnce(Return("no"));
+
+    EXPECT_CALL(m_vici_api, free_res(Eq(resTest)));
+
+    EXPECT_EQ(m_ike_vici_api.unload_authority(ca_name),
+              ipsec_ret::REMOVE_FAILED);
     EXPECT_EQ(m_ike_vici_api.get_vici_connection(), viciConnTest);
 }

@@ -81,6 +81,7 @@
 #define IPSEC_VICI_SPI_IN_KEY       "spi-in"
 #define IPSEC_VICI_CHILD_SAS_KEY    "child-sas"
 #define IPSEC_VICI_LOAD_AUTHORITY   "load-authority"
+#define IPSEC_VICI_UNLOAD_AUTHORITY "unload-authority"
 #define IPSEC_VICI_CA_CERT          "cacert"
 
 /**********************************

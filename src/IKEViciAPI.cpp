@@ -716,3 +716,52 @@ ipsec_ret IKEViciAPI::load_authority(const ipsec_ca& ca)
 
     return ipsec_ret::OK;
 }
+
+ipsec_ret IKEViciAPI::unload_authority(const std::string& ca_name)
+{
+    if(!m_is_ready)
+    {
+        return ipsec_ret::NOT_READY;
+    }
+
+    if(ca_name.empty())
+    {
+        return ipsec_ret::EMPTY_STRING;
+    }
+
+    vici_req_t *req = nullptr;
+    vici_res_t *res = nullptr;
+
+    //
+    //Fill in the message to execute the command as in
+    //https://www.strongswan.org/apidoc/md_src_libcharon_plugins_vici_README.html
+    //
+
+    req = m_vici_api.begin(IPSEC_VICI_UNLOAD_AUTHORITY);
+
+    m_vici_api.add_key_value_str(req, IPSEC_VICI_NAME, ca_name);
+
+    res = m_vici_api.submit(req, m_vici_connection);
+    if (res != nullptr)
+    {
+        const char* success = m_vici_api.find_str(res, "", IPSEC_VICI_SUCCESS);
+
+        if(strcmp(success, "yes") != 0)
+        {
+            //TODO: Add log error
+            //printf("error: %s\n", vici_find_str(res, "", IPSEC_VICI_ERRMSG));
+
+            m_vici_api.free_res(res);
+
+            return ipsec_ret::REMOVE_FAILED;
+        }
+
+        m_vici_api.free_res(res);
+    }
+    else
+    {
+        return ipsec_ret::ERR;
+    }
+
+    return ipsec_ret::OK;
+}
