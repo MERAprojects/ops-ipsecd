@@ -125,6 +125,14 @@ class IIKEAPI
         virtual ipsec_ret get_connection_stats(const std::string& conn_name,
                                          ipsec_ike_connection_stats& stats) = 0;
 
+        /**
+         * Load a CA into memory
+         *
+         * @param ca Certificate Authority details
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret load_authority(const ipsec_ca& ca) = 0;
 };
 
 #endif /* IIKEAPI_H */

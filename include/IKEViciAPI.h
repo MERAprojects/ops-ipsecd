@@ -33,12 +33,13 @@ extern "C"
 **********************************/
 #include "IIKEAPI.h"
 #include "ops-ipsecd.h"
-#include "ViciStreamParser.h"
 
 /**********************************
 *Forward Decl
 **********************************/
 class IViciAPI;
+class ISystemCalls;
+class IViciStreamParser;
 
 /**
  * IKE strongSWAN Daemon VICI API
@@ -73,6 +74,11 @@ class IKEViciAPI : public IIKEAPI
         IViciStreamParser& m_vici_stream_parser;
 
         /**
+         * System Calls interface
+         */
+        ISystemCalls& m_system_calls;
+
+        /**
          * @copydoc IIKEAPI::deinitialize
          */
         void deinitialize() override;
@@ -85,8 +91,11 @@ class IKEViciAPI : public IIKEAPI
          * @param vici_api Vici API Layer Object
          *
          * @param viciParser Vici Event Stream Response Parser
+         *
+         * @param system_calls System Calls Interface
          */
-        IKEViciAPI(IViciAPI& vici_api, IViciStreamParser& viciParser);
+        IKEViciAPI(IViciAPI& vici_api, IViciStreamParser& viciParser,
+                   ISystemCalls& system_calls);
 
         /**
          * Default Destructor
@@ -129,7 +138,12 @@ class IKEViciAPI : public IIKEAPI
          * @copydoc IIKEAPI::get_connection_stats
          */
         ipsec_ret get_connection_stats(const std::string& conn_name,
-                                       ipsec_ike_connection_stats& stats);
+                                   ipsec_ike_connection_stats& stats) override;
+
+        /**
+         * @copydoc IIKEAPI::load_authority
+         */
+        ipsec_ret load_authority(const ipsec_ca& ca) override;
 };
 
 #endif /* IKEVICIAPI_H */

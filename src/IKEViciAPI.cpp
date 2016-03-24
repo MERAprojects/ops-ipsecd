@@ -23,11 +23,14 @@
 /**********************************
 *Local Includes
 **********************************/
+#include "MapFile.h"
 #include "IViciAPI.h"
 #include "ViciList.h"
 #include "ViciValue.h"
 #include "IKEViciAPI.h"
 #include "ViciSection.h"
+#include "ISystemCalls.h"
+#include "ViciStreamParser.h"
 #include "ops_ipsecd_helper.h"
 #include "ops_ipsecd_vici_defs.h"
 
@@ -35,9 +38,11 @@
 *Function Declarations
 **********************************/
 
-IKEViciAPI::IKEViciAPI(IViciAPI& vici_api, IViciStreamParser& viciParser)
+IKEViciAPI::IKEViciAPI(IViciAPI& vici_api, IViciStreamParser& viciParser,
+                       ISystemCalls& system_calls)
     : m_vici_api(vici_api)
     , m_vici_stream_parser(viciParser)
+    , m_system_calls(system_calls)
 {
 }
 
@@ -650,4 +655,9 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
     }
 
     return ipsec_ret::OK;
+}
+
+ipsec_ret IKEViciAPI::load_authority(const ipsec_ca& ca)
+{
+    return ipsec_ret::ERR;
 }

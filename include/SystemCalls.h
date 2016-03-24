@@ -49,22 +49,22 @@ class SystemCalls : public ISystemCalls
          * @copydoc ISystemCalls::s_mmap
          */
         void* s_mmap(void *addr, size_t length, int prot, int flags,
-                     int fd, off_t offset);
+                     int fd, off_t offset) override;
 
         /**
          * @copydoc ISystemCalls::s_munmap
          */
-        int s_munmap(void *addr, size_t length);
+        int s_munmap(void *addr, size_t length) override;
 
         /**
          * @copydoc ISystemCalls::s_open
          */
-        int s_open(const char *pathname, int flags);
+        int s_open(const char *pathname, int flags) override;
 
         /**
          * @copydoc ISystemCalls::s_fstat
          */
-        int s_fstat(int fd, struct stat *buf);
+        int s_fstat(int fd, struct stat *buf) override;
 };
 
 #endif /* ISYSTEMCALLS_H */

@@ -574,4 +574,17 @@ struct ipsec_sp_stats
     ipsec_lifetime_current m_life_stats;
 };
 
+struct ipsec_ca
+{
+    /**
+     * Name of the CA
+     */
+    std::string m_name            = "";
+
+    /**
+     * File path of the CA certificate
+     */
+    std::string m_cert_file_path  = "";
+};
+
 #endif

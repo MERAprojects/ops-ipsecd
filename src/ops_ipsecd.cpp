@@ -27,9 +27,10 @@
 /**********************************
 *Local Includes
 **********************************/
+#include "ViciAPI.h"
 #include "DebugMode.h"
 #include "IKEViciAPI.h"
-#include "ViciAPI.h"
+#include "SystemCalls.h"
 #include "ViciStreamParser.h"
 
 /**
@@ -70,7 +71,8 @@ int main( int argc, const char* argv[] )
 {
     ViciAPI vici_api;
     ViciStreamParser vici_stream_parser(vici_api);
-    IKEViciAPI ikeViciApi(vici_api,vici_stream_parser);
+    SystemCalls systemCalls;
+    IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, systemCalls);
 
     if (ikeViciApi.initialize() != ipsec_ret::OK)
     {
