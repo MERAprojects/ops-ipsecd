@@ -38,7 +38,7 @@ extern "C"
 *Forward Decl
 **********************************/
 class IViciAPI;
-class ISystemCalls;
+class IMapFile;
 class IViciStreamParser;
 
 /**
@@ -74,9 +74,9 @@ class IKEViciAPI : public IIKEAPI
         IViciStreamParser& m_vici_stream_parser;
 
         /**
-         * System Calls interface
+         * Map File interface
          */
-        ISystemCalls& m_system_calls;
+        IMapFile& m_map_file;
 
         /**
          * @copydoc IIKEAPI::deinitialize
@@ -92,10 +92,10 @@ class IKEViciAPI : public IIKEAPI
          *
          * @param viciParser Vici Event Stream Response Parser
          *
-         * @param system_calls System Calls Interface
+         * @param map_file Map File Interface
          */
         IKEViciAPI(IViciAPI& vici_api, IViciStreamParser& viciParser,
-                   ISystemCalls& system_calls);
+                   IMapFile& map_file);
 
         /**
          * Default Destructor

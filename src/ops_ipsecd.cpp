@@ -27,6 +27,7 @@
 /**********************************
 *Local Includes
 **********************************/
+#include "MapFile.h"
 #include "ViciAPI.h"
 #include "DebugMode.h"
 #include "IKEViciAPI.h"
@@ -72,7 +73,8 @@ int main( int argc, const char* argv[] )
     ViciAPI vici_api;
     ViciStreamParser vici_stream_parser(vici_api);
     SystemCalls systemCalls;
-    IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, systemCalls);
+    MapFile mapFile(systemCalls);
+    IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, mapFile);
 
     if (ikeViciApi.initialize() != ipsec_ret::OK)
     {

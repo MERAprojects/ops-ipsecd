@@ -24,12 +24,12 @@
 *Local Includes
 **********************************/
 #include "MapFile.h"
+#include "IMapFile.h"
 #include "IViciAPI.h"
 #include "ViciList.h"
 #include "ViciValue.h"
 #include "IKEViciAPI.h"
 #include "ViciSection.h"
-#include "ISystemCalls.h"
 #include "ViciStreamParser.h"
 #include "ops_ipsecd_helper.h"
 #include "ops_ipsecd_vici_defs.h"
@@ -39,10 +39,10 @@
 **********************************/
 
 IKEViciAPI::IKEViciAPI(IViciAPI& vici_api, IViciStreamParser& viciParser,
-                       ISystemCalls& system_calls)
+                       IMapFile& map_file)
     : m_vici_api(vici_api)
     , m_vici_stream_parser(viciParser)
-    , m_system_calls(system_calls)
+    , m_map_file(map_file)
 {
 }
 
@@ -659,5 +659,60 @@ ipsec_ret IKEViciAPI::get_connection_stats(const std::string& conn_name,
 
 ipsec_ret IKEViciAPI::load_authority(const ipsec_ca& ca)
 {
-    return ipsec_ret::ERR;
+    if(!m_is_ready)
+    {
+        return ipsec_ret::NOT_READY;
+    }
+
+    if(ca.m_name.empty() || ca.m_cert_file_path.empty())
+    {
+        return ipsec_ret::EMPTY_STRING;
+    }
+
+    ipsec_ret ret = m_map_file.map_file(ca.m_cert_file_path);
+    if(ret != ipsec_ret::OK)
+    {
+        return ret;
+    }
+
+    vici_req_t *req = nullptr;
+    vici_res_t *res = nullptr;
+
+    //
+    //Fill in the message to execute the command as in
+    //https://www.strongswan.org/apidoc/md_src_libcharon_plugins_vici_README.html
+    //
+
+    req = m_vici_api.begin(IPSEC_VICI_LOAD_AUTHORITY);
+
+    m_vici_api.begin_section(req, ca.m_name.c_str());
+
+    m_vici_api.add_key_value(req, IPSEC_VICI_CA_CERT, m_map_file.get_map_file(),
+                             m_map_file.get_size());
+
+    m_vici_api.end_section(req); //End CA Section
+
+    res = m_vici_api.submit(req, m_vici_connection);
+    if (res != nullptr)
+    {
+        const char* success = m_vici_api.find_str(res, "", IPSEC_VICI_SUCCESS);
+
+        if(strcmp(success, "yes") != 0)
+        {
+            //TODO: Add log error
+            //printf("error: %s\n", vici_find_str(res, "", IPSEC_VICI_ERRMSG));
+
+            m_vici_api.free_res(res);
+
+            return ipsec_ret::STOP_FAILED;
+        }
+
+        m_vici_api.free_res(res);
+    }
+    else
+    {
+        return ipsec_ret::ERR;
+    }
+
+    return ipsec_ret::OK;
 }
