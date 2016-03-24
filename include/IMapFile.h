@@ -16,80 +16,63 @@
  *   under the License.
  */
 
-#ifndef MAPFILE_H
-#define MAPFILE_H
+#ifndef IMAPFILE_H
+#define IMAPFILE_H
 
 /**********************************
 *System Includes
 **********************************/
+#include <stdint.h>
 
 /**********************************
 *Local Includes
 **********************************/
-#include "IMapFile.h"
-#include "ISystemCalls.h"
+#include "ops-ipsecd.h"
 
 /**
- * Class for to Map the Files
+ * Base Class for to Map the Files
  */
-class MapFile : public IMapFile
+class IMapFile
 {
     protected:
 
         /**
-         * System Calls Interface
+         * Unmap the File
          */
-        ISystemCalls& m_SystemCalls;
-
-        /**
-         * Size of the file that was map
-         */
-        uint32_t m_size = 0;
-
-        /**
-         * Map File
-         */
-        void* m_map_file = nullptr;
-
-        /**
-         * @copydoc IMapFile::unmap_file
-         */
-        void unmap_file() override;
+        virtual void unmap_file() = 0;
 
     public:
 
         /**
          * Default Constructor
-         *
-         * @param systemCalls SystemCall Interface
          */
-        MapFile(ISystemCalls& systemCalls);
+        IMapFile() {}
 
         /**
          * Default Destructor
          */
-        virtual ~MapFile();
+        virtual ~IMapFile() {}
 
         /**
-         * @copydoc IMapFile::map_file
+         * Map The file using mmap
+         *
+         * @param filepath File path of the file to map
          */
-        ipsec_ret map_file(const std::string& filepath) override;
+        virtual ipsec_ret map_file(const std::string& filepath) = 0;
 
         /**
-         * @copydoc IMapFile::get_map_file
+         * Get the pointer to the map file
+         *
+         * @return Pointer to the map file
          */
-        inline const void* get_map_file() const override
-        {
-            return m_map_file;
-        }
+        virtual const void* get_map_file() const = 0;
 
         /**
-         * @copydoc IMapFile::get_size
+         * Gets the size of the map file
+         *
+         * @return Size of the map file
          */
-        inline uint32_t get_size() const override
-        {
-            return m_size;
-        }
+        virtual uint32_t get_size() const = 0;
 };
 
-#endif /* MAPFILE_H */
+#endif /* IMAPFILE_H */
