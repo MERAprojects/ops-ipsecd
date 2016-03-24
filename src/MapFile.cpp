@@ -39,9 +39,12 @@ MapFile::~MapFile()
 
 void MapFile::unmap_file()
 {
-    if(m_map_File == nullptr)
+    if(m_map_File != nullptr)
     {
         m_SystemCalls.s_munmap(m_map_File, m_size);
+
+        m_map_File = nullptr;
+        m_size = 0;
     }
 }
 
@@ -71,6 +74,8 @@ ipsec_ret MapFile::map_file(const std::string& filepath)
                                        MAP_PRIVATE, fd, 0);
     if (m_map_File == MAP_FAILED)
     {
+        m_map_File = nullptr;
+
         return ipsec_ret::MMAP_FAILED;
     }
 

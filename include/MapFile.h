@@ -69,7 +69,7 @@ class MapFile
         /**
          * Default Destructor
          */
-        ~MapFile();
+        virtual ~MapFile();
 
         /**
          * Map The file using mmap
