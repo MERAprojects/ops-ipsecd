@@ -77,6 +77,7 @@ set (SOURCES
         ${SRC_DIR}/DebugMode.cpp
         ${SRC_DIR}/SystemCalls.cpp
         ${SRC_DIR}/MapFile.cpp
+        ${SRC_DIR}/StatPublisher.cpp
 )
 
 # Rules to build ops-ipsecd

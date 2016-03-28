@@ -23,6 +23,7 @@
 **********************************/
 #include <list>
 #include <string>
+#include <string.h>
 #include <stdint.h>
 #include <sys/mman.h>
 #include <arpa/inet.h>
@@ -70,6 +71,8 @@ enum class ipsec_ret : int32_t
     OPEN_FAILED,
     SSTAT_FAILED,
     REMOVE_FAILED,
+    NOT_RUNNING,
+    IS_RUNNING,
 
     //Add Errors before this line
     OK = 0
@@ -215,6 +218,13 @@ enum class ipsec_direction : uint32_t
     outbound = 0,
     inbound,
     forward
+};
+
+enum class ipsec_type : uint32_t
+{
+    sa,
+    sp,
+    ike
 };
 
 /**********************************
@@ -575,6 +585,9 @@ struct ipsec_sp_stats
     ipsec_lifetime_current m_life_stats;
 };
 
+/**
+ * IPsec Certificate Authority
+ */
 struct ipsec_ca
 {
     /**
@@ -586,6 +599,60 @@ struct ipsec_ca
      * File path of the CA certificate
      */
     std::string m_cert_file_path  = "";
+};
+
+/**
+ * IPsec Stats to be Publish
+ */
+struct ipsec_stat_pub
+{
+    /**
+     * IPsec Type
+     */
+    ipsec_type m_type = ipsec_type::sa;
+
+    /**
+     * IKE Connection Name
+     */
+    std::string m_ike_name = "";
+
+    /**
+     * SA SPI
+     */
+    uint32_t m_sa_spi = 0;
+
+    /**
+     * SP ID
+     */
+    ipsec_sp_id m_sp_id;
+
+    /**
+     * Overload Equal operator
+     *
+     * @return true is equal
+     */
+    bool operator==(const ipsec_stat_pub& other)
+    {
+        if(m_type != other.m_type)
+        {
+            return false;
+        }
+
+        switch(m_type)
+        {
+            case ipsec_type::sa:
+                return (m_sa_spi == other.m_sa_spi);
+
+            case ipsec_type::sp:
+                return (memcmp(&m_sp_id, &other.m_sp_id, sizeof(ipsec_sp_id)));
+
+            case ipsec_type::ike:
+                return (m_ike_name.compare(other.m_ike_name) == 0);
+
+            default:
+                return false;
+        }
+    }
 };
 
 #endif

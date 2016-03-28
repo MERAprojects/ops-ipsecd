@@ -20,6 +20,8 @@
 
 class MockIIKEAPI : public IIKEAPI {
  public:
+  MOCK_METHOD0(deinitialize,
+      void());
   MOCK_METHOD0(initialize,
       ipsec_ret());
   MOCK_METHOD1(create_connection,
@@ -33,6 +35,9 @@ class MockIIKEAPI : public IIKEAPI {
   MOCK_METHOD1(load_credential,
       ipsec_ret(const ipsec_credential& cred));
   MOCK_METHOD2(get_connection_stats,
-      ipsec_ret(const std::string& conn_name,
-                ipsec_ike_connection_stats& stats));
+      ipsec_ret(const std::string& conn_name, ipsec_ike_connection_stats& stats));
+  MOCK_METHOD1(load_authority,
+      ipsec_ret(const ipsec_ca& ca));
+  MOCK_METHOD1(unload_authority,
+      ipsec_ret(const std::string& ca_name));
 };
