@@ -48,6 +48,7 @@ set (MAIN_SOURCES
         ${MAIN_SRC_DIR}/ViciSection.cpp
         ${MAIN_SRC_DIR}/ViciStreamParser.cpp
         ${MAIN_SRC_DIR}/MapFile.cpp
+        ${MAIN_SRC_DIR}/StatPublisher.cpp
 )
 
 add_executable(${IPSEC-UT} ${TEST_SOURCES} ${MAIN_SOURCES})
