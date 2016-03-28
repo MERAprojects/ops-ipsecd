@@ -222,9 +222,17 @@ enum class ipsec_direction : uint32_t
 
 enum class ipsec_type : uint32_t
 {
-    sa,
+    sa = 0,
     sp,
-    ike
+    ike,
+    ca
+};
+
+enum class ipsec_config_action : uint32_t
+{
+    add = 0,
+    modify,
+    remove
 };
 
 /**********************************
@@ -654,5 +662,6 @@ struct ipsec_stat_pub
         }
     }
 };
+
 
 #endif

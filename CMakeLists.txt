@@ -78,6 +78,12 @@ set (SOURCES
         ${SRC_DIR}/SystemCalls.cpp
         ${SRC_DIR}/MapFile.cpp
         ${SRC_DIR}/StatPublisher.cpp
+        ${SRC_DIR}/ConfigQueue.cpp
+        ${SRC_DIR}/ConfigTask.cpp
+        ${SRC_DIR}/ConfigTaskSA.cpp
+        ${SRC_DIR}/ConfigTaskSP.cpp
+        ${SRC_DIR}/ConfigTaskCA.cpp
+        ${SRC_DIR}/ConfigTaskIKE.cpp
 )
 
 # Rules to build ops-ipsecd
