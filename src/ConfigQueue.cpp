@@ -36,3 +36,81 @@ ConfigQueue::ConfigQueue(IIKEAPI& ike_api)
 ConfigQueue::~ConfigQueue()
 {
 }
+
+void ConfigQueue::run_config_dispatcher()
+{
+    ConfigTask task;
+
+    while (true)
+    {
+        {
+            std::unique_lock<std::mutex> lock(m_config_queue_mutex);
+
+            m_task_conditional.wait(
+                lock, [this]{return !m_task_queue.empty() || !m_is_running; });
+
+            if (!m_is_running)
+            {
+                    break;
+            }
+
+            task = m_task_queue.front();
+
+            m_task_queue.pop();
+        }
+
+        run_config_task(task);
+    }
+}
+
+ipsec_ret ConfigQueue::start_thread()
+{
+    std::lock_guard<std::mutex> lock(m_config_task_mutex);
+
+    if(m_is_running)
+    {
+        return ipsec_ret::IS_RUNNING;
+    }
+
+    m_is_running = true;
+
+    m_config_thread = std::thread(&ConfigQueue::run_config_dispatcher, this);
+
+    return ipsec_ret::OK;
+}
+
+ipsec_ret ConfigQueue::stop_thread()
+{
+    std::lock_guard<std::mutex> lock(m_config_task_mutex);
+
+    if (!m_is_running)
+    {
+        return ipsec_ret::NOT_RUNNING;
+    }
+
+    m_is_running = false;
+
+    m_task_conditional.notify_all();
+
+    if(m_config_thread.joinable())
+    {
+        m_config_thread.join();
+    }
+
+    return ipsec_ret::OK;
+}
+
+void ConfigQueue::run_config_task(const ConfigTask& task)
+{
+}
+
+void ConfigQueue::add_task(const ConfigTask& task)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_config_queue_mutex);
+
+        m_task_queue.push(task);
+    }
+
+    m_task_conditional.notify_one();
+}

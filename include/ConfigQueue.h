@@ -21,12 +21,17 @@
 /**********************************
 *System Includes
 **********************************/
+#include <mutex>
+#include <queue>
+#include <thread>
 #include <string>
+#include <condition_variable>
 
 /**********************************
 *Local Includes
 **********************************/
 #include "ops-ipsecd.h"
+#include "ConfigTask.h"
 #include "IConfigQueue.h"
 
 /**
@@ -41,6 +46,46 @@ class ConfigQueue : public IConfigQueue
          */
         IIKEAPI& m_ike_api;
 
+        /**
+         * Configuration Dispatcher Thread
+         */
+        std::thread m_config_thread;
+
+        /**
+         * Mutex for Config Queue Class
+         */
+        std::mutex m_config_task_mutex;
+
+        /**
+         * Mutex for Config Queue
+         */
+        std::mutex m_config_queue_mutex;
+
+        /**
+         * Configuration Task Queue
+         */
+        std::queue<ConfigTask> m_task_queue;
+
+        /**
+         * Conditional use to trigger a new task
+         */
+        std::condition_variable m_task_conditional;
+
+        /**
+         * Determines if the Configuration Thread is still running
+         */
+        bool m_is_running = false;
+
+        /**
+         * Configuration Dispatcher main method
+         */
+        void run_config_dispatcher();
+
+        /**
+         * Executes the Configuration Task
+         */
+        void run_config_task(const ConfigTask& task);
+
     public:
 
         /**
@@ -54,6 +99,23 @@ class ConfigQueue : public IConfigQueue
          * Default Destructor
          */
         virtual ~ConfigQueue();
+
+        /**
+         * Starts the Configuration Thread Dispatcher
+         */
+        ipsec_ret start_thread();
+
+        /**
+         * Stops the Configuration Thread Dispatcher
+         */
+        ipsec_ret stop_thread();
+
+        /**
+         * Adds a configuration task to the queue
+         *
+         * @param task Configuration Task
+         */
+        void add_task(const ConfigTask& task);
 
 };
 

@@ -27,6 +27,10 @@
 /**********************************
 *Function Declarations
 **********************************/
+ConfigTask::ConfigTask()
+{
+}
+
 ConfigTask::ConfigTask(ipsec_type type, ipsec_config_action config_action)
     : m_type(type)
     , m_config_action(config_action)

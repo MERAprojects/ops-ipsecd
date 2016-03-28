@@ -49,6 +49,11 @@ class ConfigTask
 
         /**
          * Default Constructor
+         */
+        ConfigTask();
+
+        /**
+         * Default Constructor
          *
          * @param type IPsec Connection Type
          *
