@@ -84,6 +84,8 @@ set (SOURCES
         ${SRC_DIR}/ConfigTaskSP.cpp
         ${SRC_DIR}/ConfigTaskCA.cpp
         ${SRC_DIR}/ConfigTaskIKE.cpp
+        ${SRC_DIR}/IPsecNetlinkAPI.cpp
+        ${SRC_DIR}/LibmnlWrapper.cpp
 )
 
 # Rules to build ops-ipsecd
@@ -102,7 +104,7 @@ IF (DOXYGEN_FOUND)
     add_dependencies(${IPSEC} doc)
 ENDIF()
 
-target_link_libraries (${IPSEC} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES} -lvici -lpthread -lrt)
+target_link_libraries (${IPSEC} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES} -lmnl -lvici -lpthread -lrt)
 
 # Rules to install ops-ipsecd binary in rootfs
 install(TARGETS ${IPSEC}
