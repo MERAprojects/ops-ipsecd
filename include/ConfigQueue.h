@@ -130,21 +130,17 @@ class ConfigQueue : public IConfigQueue
         virtual ~ConfigQueue();
 
         /**
-         * Starts the Configuration Thread Dispatcher
+         * @copydoc IConfigQueue::start_thread
          */
         ipsec_ret start_thread();
 
         /**
-         * Stops the Configuration Thread Dispatcher
+         * @copydoc IConfigQueue::stop_thread
          */
         ipsec_ret stop_thread();
 
         /**
-         * Adds a configuration task to the queue
-         *
-         * @param task Configuration Task
-         *
-         * @return ipsec_ret::OK if successful, otherwise an error code
+         * @copydoc IConfigQueue::add_task
          */
         ipsec_ret add_task(ConfigTask* task);
 

@@ -139,6 +139,44 @@ TEST_F(MapFileTestSuite, TestMapFile)
 }
 
 /**
+ * Objective: Verify that Map File can map a file and unmap a previous map file
+ **/
+TEST_F(MapFileTestSuite, TestMapFileFileMapped)
+{
+    FakeCalls fakeCalls;
+
+    void* file_map_prev = (void*)0x100;
+    uint32_t size_prev = 111;
+
+    m_MapFile.set_map_file(file_map_prev);
+    m_MapFile.set_size(size_prev);
+
+    EXPECT_CALL(m_SystemCalls, s_munmap(Eq(file_map_prev), Eq(size_prev)))
+            .WillOnce(Return(0));
+
+    int fd = 222;
+    void* file_map = (void*)0x100;
+    fakeCalls.m_stat.st_size = 333;
+    std::string filepath = "TestFile.txt";
+
+    ON_CALL(m_SystemCalls, s_fstat(_, _))
+            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::s_fstat));
+
+    EXPECT_CALL(m_SystemCalls, s_open(StrEq(filepath), O_RDONLY))
+            .WillOnce(Return(fd));
+
+    EXPECT_CALL(m_SystemCalls, s_fstat(Eq(fd), NotNull()));
+
+    EXPECT_CALL(m_SystemCalls, s_mmap(IsNull(), Eq(fakeCalls.m_stat.st_size),
+                        Eq(PROT_READ), Eq(MAP_PRIVATE), Eq(fd), Eq(0)))
+            .WillOnce(Return(file_map));
+
+    EXPECT_EQ(m_MapFile.map_file(filepath), ipsec_ret::OK);
+    EXPECT_EQ(m_MapFile.get_map_file(), file_map);
+    EXPECT_EQ(m_MapFile.get_size(), fakeCalls.m_stat.st_size);
+}
+
+/**
  * Objective: Verify that Map File will return the correct error
  * if the file cannot be open
  **/

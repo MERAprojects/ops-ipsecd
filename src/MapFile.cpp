@@ -50,6 +50,8 @@ void MapFile::unmap_file()
 
 ipsec_ret MapFile::map_file(const std::string& filepath)
 {
+    unmap_file();
+
     int fd = 0;
     int status = 0;
     struct stat s;
