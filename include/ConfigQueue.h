@@ -31,8 +31,16 @@
 *Local Includes
 **********************************/
 #include "ops-ipsecd.h"
-#include "ConfigTask.h"
 #include "IConfigQueue.h"
+
+/**********************************
+*Forward Decl
+**********************************/
+class ConfigTask;
+class ConfigTaskSA;
+class ConfigTaskSP;
+class ConfigTaskCA;
+class ConfigTaskIKE;
 
 /**
  * Base Interface Class for Configuration Queue
@@ -64,7 +72,7 @@ class ConfigQueue : public IConfigQueue
         /**
          * Configuration Task Queue
          */
-        std::queue<ConfigTask> m_task_queue;
+        std::queue<ConfigTask*> m_task_queue;
 
         /**
          * Conditional use to trigger a new task
@@ -77,14 +85,35 @@ class ConfigQueue : public IConfigQueue
         bool m_is_running = false;
 
         /**
+         * Cleans any memory been use
+         */
+        void clean();
+
+        /**
          * Configuration Dispatcher main method
          */
         void run_config_dispatcher();
 
         /**
          * Executes the Configuration Task
+         *
+         * @param task Configuration task to execute
          */
-        void run_config_task(const ConfigTask& task);
+        void run_config_task(const ConfigTask* task);
+
+        /**
+         * Execute IKE Configuration task
+         *
+         * @param task IKE Configuration Task
+         */
+        void ike_config_task(const ConfigTaskIKE* task);
+
+        /**
+         * Execute IPsec CA Configuration task
+         *
+         * @param task CA Configuration Task
+         */
+        void ca_config_task(const ConfigTaskCA* task);
 
     public:
 
@@ -114,8 +143,10 @@ class ConfigQueue : public IConfigQueue
          * Adds a configuration task to the queue
          *
          * @param task Configuration Task
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
          */
-        void add_task(const ConfigTask& task);
+        ipsec_ret add_task(ConfigTask* task);
 
 };
 

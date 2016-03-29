@@ -37,6 +37,13 @@
  */
 #define IP_ADDRESS_LENGTH           16
 
+/**
+ * Delete Helper
+ */
+
+#define DeleteMem(x) if(x != nullptr){delete x; x = nullptr;}
+#define DeleteMemArr(x) if(x != nullptr){delete[] x; x = nullptr;}
+
 /**********************************
 *Enums
 **********************************/

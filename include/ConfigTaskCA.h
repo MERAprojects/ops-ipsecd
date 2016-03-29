@@ -57,6 +57,13 @@ class ConfigTaskCA : public ConfigTask
          */
         virtual ~ConfigTaskCA();
 
+        /**
+         * Gets IPsec Certificate Authority
+         */
+        inline const ipsec_ca& get_ca() const
+        {
+            return m_ca;
+        }
 };
 
 #endif

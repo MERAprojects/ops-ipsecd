@@ -58,6 +58,13 @@ class ConfigTaskIKE : public ConfigTask
          */
         virtual ~ConfigTaskIKE();
 
+        /**
+         * Gets IPsec IKE Connection
+         */
+        inline const ipsec_ike_connection& get_ike_connection() const
+        {
+            return m_ike_connection;
+        }
 };
 
 #endif
