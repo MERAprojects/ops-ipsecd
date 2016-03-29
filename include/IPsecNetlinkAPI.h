@@ -54,7 +54,29 @@ class IPsecNetlinkAPI : public IIPsecAPI
          */
         ipsec_ret create_socket(struct mnl_socket** nl_socket, uint32_t groups);
 
+        ipsec_ret parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
+                                struct nlattr** nl_attrs, ipsec_sa* sa);
+
+        /**
+         * MNL Callback when parsing attributes
+         */
+        static int parse_nested_attr(const struct nlattr* nl_attr, void* data);
+
+        /**
+         * MNL Parser for XFRM SA Message
+         */
+        static int mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data);
+
     public:
+
+        /**
+         * Structure use to pass Data to the MNL Callbacks
+         */
+        struct CB_Data
+        {
+            IPsecNetlinkAPI* m_netlink_api = nullptr;
+            void* user_data = nullptr;
+        };
 
         /**
          * Default Constructor
@@ -69,9 +91,15 @@ class IPsecNetlinkAPI : public IIPsecAPI
         virtual ~IPsecNetlinkAPI();
 
         /**
-         * @copydoc IPsecNetlinkAPI::add_sa
+         * @copydoc IPsecAPI::add_sa
          */
-        ipsec_ret add_sa(const ipsec_sa& sa);
+        ipsec_ret add_sa(const ipsec_sa& sa) override;
+
+
+        /**
+         * @copydoc IPsecAPI::get_sa
+         */
+        ipsec_ret get_sa(uint32_t spi, ipsec_sa& sa) override;
 
 };
 

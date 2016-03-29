@@ -242,3 +242,253 @@ ipsec_ret IPsecNetlinkAPI::add_sa(const ipsec_sa& sa)
     //Finish
     return ipsec_ret::OK;
 }
+
+ipsec_ret IPsecNetlinkAPI::get_sa(uint32_t spi, ipsec_sa& sa)
+{
+    struct mnl_socket* nl_socket = NULL;
+    struct nlmsghdr* nlh = NULL;
+    struct xfrm_usersa_id* xfrm_said = NULL;
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    uint32_t seq = 0;
+    uint32_t pid = 0;
+
+    nlh = m_mnl_wrapper.nlmsg_put_header(buf);
+    if(nlh == NULL)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+
+    nlh->nlmsg_type = XFRM_MSG_GETSA;
+    nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_DUMP;
+    nlh->nlmsg_seq = seq = time(NULL);
+
+    xfrm_said =
+         (struct xfrm_usersa_id*)m_mnl_wrapper.nlmsg_put_extra_header(nlh,
+                                                 sizeof(struct xfrm_usersa_id));
+    if(xfrm_said == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+    memset(xfrm_said, 0, sizeof(struct xfrm_usersa_id));
+
+    ///////////////////////////////////////
+    //Get Socket
+    if(create_socket(&nl_socket, 0) != ipsec_ret::OK)
+    {
+        return ipsec_ret::SOCKET_CREATE_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Set XFRM SA SPI
+    xfrm_said->spi     = htonl(spi);
+
+    ///////////////////////////////////////
+    //Get Socket Port ID
+    pid = m_mnl_wrapper.socket_get_portid(nl_socket);
+
+    ///////////////////////////////////////
+    //Clean SA
+    sa = ipsec_sa();
+
+    ///////////////////////////////////////
+    //Send Request
+    ssize_t socketRet = m_mnl_wrapper.socket_sendto(nl_socket, nlh, nlh->nlmsg_len);
+    if(socketRet <= 0)
+    {
+        ///////////////////////////////////////
+        //Close Socket and return error
+        m_mnl_wrapper.socket_close(nl_socket);
+
+        return ipsec_ret::SOCKET_SEND_FAILED;
+    }
+
+    socketRet = m_mnl_wrapper.socket_recvfrom(nl_socket, buf, sizeof(buf));
+    if(socketRet > 0)
+    {
+        CB_Data data;
+
+        data.m_netlink_api = this;
+        data.user_data = &sa;
+
+        socketRet = m_mnl_wrapper.cb_run(buf, socketRet, seq, pid,
+                                         mnl_parse_xfrm_sa, &data);
+        if (socketRet <= MNL_CB_STOP)
+        {
+            //TODO: Log error
+        }
+    }
+
+    ///////////////////////////////////////
+    //Close Socket
+    m_mnl_wrapper.socket_close(nl_socket);
+
+    ///////////////////////////////////////
+    //If Address Family was not set, SA was not found
+    if(sa.m_id.m_addr_family == 0)
+    {
+        return ipsec_ret::NOT_FOUND;
+    }
+
+    return ipsec_ret::OK;
+}
+
+int IPsecNetlinkAPI::parse_nested_attr(const struct nlattr* nl_attr, void* data)
+{
+    if(data == nullptr)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    CB_Data* cbData = (CB_Data*)data;
+    ILibmnlWrapper& mnl_wrapper = cbData->m_netlink_api->m_mnl_wrapper;
+
+    const struct nlattr** nl_attrs = (const struct nlattr**)cbData->user_data;
+
+    uint16_t type = mnl_wrapper.attr_get_type(nl_attr);
+
+    ///////////////////////////////////////
+    //Check if Attribute Type is valid, if it is not skip it
+    if (mnl_wrapper.attr_type_valid(nl_attr, XFRMA_MAX) < 0)
+    {
+        return MNL_CB_OK;
+    }
+
+    ///////////////////////////////////////
+    //Finish
+    nl_attrs[type] = nl_attr;
+
+    return MNL_CB_OK;
+}
+
+int IPsecNetlinkAPI::mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data)
+{
+    if(data == nullptr)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    CB_Data* cbData = (CB_Data*)data;
+    ILibmnlWrapper& mnl_wrapper = cbData->m_netlink_api->m_mnl_wrapper;
+    ipsec_sa* sa = (ipsec_sa*)cbData->user_data;
+
+    if(nlh->nlmsg_type != XFRM_MSG_NEWSA &&
+       nlh->nlmsg_type != XFRM_MSG_DELSA &&
+       nlh->nlmsg_type != XFRM_MSG_GETSA &&
+       nlh->nlmsg_type != XFRM_MSG_UPDSA)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    if(data == NULL)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    ///////////////////////////////////////
+    //Get Payload
+    uint8_t* payload = (uint8_t*)mnl_wrapper.nlmsg_get_payload(nlh);
+    size_t payloadLen = nlh->nlmsg_len - sizeof(struct xfrm_usersa_info);
+
+    ///////////////////////////////////////
+    //Retrieve XFRM SA Info
+    struct xfrm_usersa_info* xfrm_sa = (struct xfrm_usersa_info*)payload;
+    if(xfrm_sa == NULL)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    ///////////////////////////////////////
+    //Advance Payload Pointer to start of Attributes
+    payload += sizeof(struct xfrm_usersa_info);
+
+    ///////////////////////////////////////
+    //Netlink Attributes
+    struct nlattr* nlAttrs[XFRMA_MAX + 1] = { 0 };
+
+    ///////////////////////////////////////
+    //Parse the Netlink Conntrack Attributes
+    CB_Data user_data;
+    user_data.m_netlink_api = cbData->m_netlink_api;
+    user_data.user_data = nlAttrs;
+    if(mnl_wrapper.attr_parse_payload(payload, payloadLen,
+                                      parse_nested_attr, &user_data) < 0)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    if(cbData->m_netlink_api->parse_xfrm_sa(xfrm_sa, nlAttrs, sa) != ipsec_ret::OK)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    return MNL_CB_OK;
+}
+
+ipsec_ret IPsecNetlinkAPI::parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
+                                       struct nlattr** nl_attrs, ipsec_sa* sa)
+{
+    if(xfrm_sa == nullptr || nl_attrs == nullptr || sa == nullptr)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+
+    ///////////////////////////////////////
+    //Fill in base SA Information
+    *sa = ipsec_sa();
+
+    sa->m_id.m_addr_family   = xfrm_sa->family;
+    sa->m_id.m_spi           = ntohl(xfrm_sa->id.spi);
+    sa->m_id.m_protocol      = xfrm_sa->id.proto;
+    memcpy(&sa->m_id.m_dst_ip, &xfrm_sa->saddr, IP_ADDRESS_LENGTH);
+    memcpy(&sa->m_id.m_dst_ip, &xfrm_sa->id.daddr, IP_ADDRESS_LENGTH);
+    sa->m_mode               = (ipsec_mode)xfrm_sa->mode;
+    sa->m_req_id             = xfrm_sa->reqid;
+    sa->m_flags              = xfrm_sa->flags;
+
+    memcpy(&sa->m_selector.m_src_addr, &xfrm_sa->sel.saddr, IP_ADDRESS_LENGTH);
+    memcpy(&sa->m_selector.m_dst_addr, &xfrm_sa->sel.daddr, IP_ADDRESS_LENGTH);
+    sa->m_selector.m_addr_family     = xfrm_sa->sel.family;
+    sa->m_selector.m_src_mask        = xfrm_sa->sel.prefixlen_s;
+    sa->m_selector.m_dst_mask        = xfrm_sa->sel.prefixlen_d;
+
+    sa->m_lifetime_current.m_add_time   = xfrm_sa->curlft.add_time;
+    sa->m_lifetime_current.m_use_time   = xfrm_sa->curlft.use_time;
+    sa->m_lifetime_current.m_bytes      = xfrm_sa->curlft.bytes;
+    sa->m_lifetime_current.m_packets    = xfrm_sa->curlft.packets;
+
+    sa->m_stats.m_replay_window     = xfrm_sa->stats.replay_window;
+    sa->m_stats.m_integrity_failed  = xfrm_sa->stats.integrity_failed;
+    sa->m_stats.m_replay            = xfrm_sa->stats.replay;
+
+    ///////////////////////////////////////
+    //Fill in SA with attributes
+    if(nl_attrs[XFRMA_ALG_CRYPT] != NULL)
+    {
+        sa->m_crypt_set = true;
+
+        struct xfrm_algo* xfrm_crypt =
+                (struct xfrm_algo*)m_mnl_wrapper.attr_get_payload(nl_attrs[XFRMA_ALG_CRYPT]);
+
+        uint32_t key_size = (xfrm_crypt->alg_key_len / 8);
+
+        sa->m_crypt.m_key = ipsecd_helper::key_to_str(xfrm_crypt->alg_key, key_size);
+
+        sa->m_crypt.m_name = std::string(xfrm_crypt->alg_name);
+    }
+
+    if(nl_attrs[XFRMA_ALG_AUTH] != NULL)
+    {
+        sa->m_auth_set = true;
+
+        struct xfrm_algo* xfrm_auth =
+                (struct xfrm_algo*)m_mnl_wrapper.attr_get_payload(nl_attrs[XFRMA_ALG_AUTH]);
+
+        uint32_t key_size = (xfrm_auth->alg_key_len / 8) * 2;
+
+        sa->m_auth.m_key = ipsecd_helper::key_to_str(xfrm_auth->alg_key, key_size);
+
+        sa->m_auth.m_name = std::string(xfrm_auth->alg_name);
+    }
+
+    return ipsec_ret::OK;
+}

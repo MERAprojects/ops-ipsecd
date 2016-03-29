@@ -300,4 +300,25 @@ namespace ipsecd_helper
             key[j] = (key1 << 4) | key2;
         }
     }
+
+    std::string key_to_str(const char* key, uint32_t keyLen)
+    {
+        static const char hex[]= "0123456789abcdef";
+
+        if(key == NULL || keyLen == 0)
+        {
+            return "";
+        }
+
+        std::string buffer = "";
+
+        for(uint32_t i = 0; i < keyLen; i++)
+        {
+
+            buffer.push_back(hex[ (key[i] >> 4) & 0x0F]);
+            buffer.push_back(hex[ (key[i]) & 0x0F]);
+        }
+
+        return buffer;
+    }
 }

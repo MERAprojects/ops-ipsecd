@@ -45,6 +45,26 @@ class IIPsecAPI
          */
         virtual ~IIPsecAPI() {}
 
+        /**
+         * Loads a new SA to the IPsec Kernel Module
+         *
+         * @param sa SA to load
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret add_sa(const ipsec_sa& sa) = 0;
+
+        /**
+         * Gets a SA from the IPsec Kernel Module
+         *
+         * @param spi SPI of the SA to search for
+         *
+         * @param sa SA to Load
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret get_sa(uint32_t spi, ipsec_sa& sa) = 0;
+
 };
 
 #endif /* IIPSECAPI_H */

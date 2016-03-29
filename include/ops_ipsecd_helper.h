@@ -130,6 +130,17 @@ namespace ipsecd_helper
      * @param key_len Length of the byte array
      */
     extern void str_to_key(const std::string& str, char* key, uint32_t key_len);
+
+    /**
+     * Converts a byte array to a String of Hexadecimals
+     *
+     * @param key Byte Array to convert
+     *
+     * @param keyLen Size of Byte Array
+     *
+     * @return String of Hexadecimals
+     */
+    extern std::string key_to_str(const char* key, uint32_t keyLen);
 }
 
 #endif /* OPS_IPSECD_HELPER_H */
