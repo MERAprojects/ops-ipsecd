@@ -37,10 +37,11 @@
  */
 #define IP_ADDRESS_LENGTH           16
 
+#define IPSEC_MAX_ALGO_NAME_LEN     64
+
 /**
  * Delete Helper
  */
-
 #define DeleteMem(x) if(x != nullptr){delete x; x = nullptr;}
 #define DeleteMemArr(x) if(x != nullptr){delete[] x; x = nullptr;}
 
@@ -670,5 +671,52 @@ struct ipsec_stat_pub
     }
 };
 
+struct ipsec_sa_sp_stats
+{
+    uint32_t m_replay_window        = 0;
+    uint32_t m_replay               = 0;
+    uint32_t m_integrity_failed     = 0;
+};
+
+struct ipsec_sa_sp_lifetime_current
+{
+    uint64_t m_add_time     = 0;
+    uint64_t m_use_time     = 0;
+    uint64_t m_bytes        = 0;
+    uint64_t m_packets      = 0;
+};
+
+struct ipsec_sa_id
+{
+    uint16_t m_addr_family  = 0;
+    ip_addr_t m_src_ip      = { 0 };
+    ip_addr_t m_dst_ip      = { 0 };
+    uint8_t m_protocol      = 0;
+    uint32_t m_spi          = 0;
+};
+
+struct ipsec_key
+{
+    std::string m_name      = "";
+    std::string m_key       = "";
+};
+
+struct ipsec_sa
+{
+    ipsec_mode m_mode       = ipsec_mode::transport;
+    uint32_t m_req_id       = 0;
+    uint8_t m_flags         = 0;
+
+    bool m_crypt_set        = false;
+    ipsec_key m_crypt;
+
+    bool m_auth_set         = false;
+    ipsec_key m_auth;
+
+    ipsec_sa_id m_id;
+    ipsec_selector m_selector;
+    ipsec_sa_sp_lifetime_current m_lifetime_current;
+    ipsec_sa_sp_stats m_stats;
+};
 
 #endif

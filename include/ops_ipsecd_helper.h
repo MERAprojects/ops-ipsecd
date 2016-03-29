@@ -119,6 +119,17 @@ namespace ipsecd_helper
      * @return ipsec state
      */
     extern ipsec_state ike_state_to_ipsec_state(const std::string ike_state);
+
+    /**
+     * Converts a string of hexadecimals to a byte array
+     *
+     * @param str String to convert
+     *
+     * @param key Byte array where to save the results
+     *
+     * @param key_len Length of the byte array
+     */
+    extern void str_to_key(const std::string& str, char* key, uint32_t key_len);
 }
 
 #endif /* OPS_IPSECD_HELPER_H */
