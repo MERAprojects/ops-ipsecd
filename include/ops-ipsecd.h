@@ -22,6 +22,7 @@
 *System Includes
 **********************************/
 #include <list>
+#include <vector>
 #include <string>
 #include <string.h>
 #include <stdint.h>
@@ -139,6 +140,19 @@ enum class ipsec_credential_type : uint32_t
 {
     psk = 0,
     rsa
+};
+
+enum class ipsec_dir
+{
+    in = 0,
+    out,
+    fwd
+};
+
+enum class ipsec_action
+{
+    allow = 0,
+    block,
 };
 
 enum class ipsec_state : int32_t
@@ -717,6 +731,26 @@ struct ipsec_sa
     ipsec_selector m_selector;
     ipsec_sa_sp_lifetime_current m_lifetime_current;
     ipsec_sa_sp_stats m_stats;
+};
+
+struct ipsec_tmpl
+{
+    uint16_t m_addr_family  = 0;
+    ip_addr_t m_src_ip      = { 0 };
+    ip_addr_t m_dst_ip      = { 0 };
+    uint8_t m_protocol      = 0;
+    uint32_t m_req_id       = 0;
+    ipsec_mode m_Mode       = ipsec_mode::transport;;
+};
+
+struct ipsec_sp
+{
+    uint32_t m_index            = 0;
+    ipsec_dir m_dir             = ipsec_dir::in;
+    ipsec_action m_action       = ipsec_action::allow;
+    uint32_t m_priority         = 0;
+    ipsec_selector m_selector;
+    std::vector<ipsec_tmpl> m_template_lists;
 };
 
 #endif
