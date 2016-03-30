@@ -594,17 +594,17 @@ ipsec_ret IPsecNetlinkAPI::add_sp(const ipsec_sp& sp)
     ///////////////////////////////////////
     //Set XFRM SP Base
     xfrm_sp->action     = (uint8_t)sp.m_action;
-    xfrm_sp->dir        = (uint8_t)sp.m_dir;
+    xfrm_sp->dir        = (uint8_t)sp.m_id.m_dir;
     xfrm_sp->index      = sp.m_index;
     xfrm_sp->priority   = sp.m_priority;
 
     ///////////////////////////////////////
     //Set XFRM SP Selector
-    memcpy(&xfrm_sp->sel.saddr, &sp.m_selector.m_src_addr, IP_ADDRESS_LENGTH);
-    memcpy(&xfrm_sp->sel.daddr, &sp.m_selector.m_dst_addr, IP_ADDRESS_LENGTH);
-    xfrm_sp->sel.family      = sp.m_selector.m_addr_family;
-    xfrm_sp->sel.prefixlen_s = sp.m_selector.m_src_mask;
-    xfrm_sp->sel.prefixlen_d = sp.m_selector.m_dst_mask;
+    memcpy(&xfrm_sp->sel.saddr, &sp.m_id.m_selector.m_src_addr, IP_ADDRESS_LENGTH);
+    memcpy(&xfrm_sp->sel.daddr, &sp.m_id.m_selector.m_dst_addr, IP_ADDRESS_LENGTH);
+    xfrm_sp->sel.family      = sp.m_id.m_selector.m_addr_family;
+    xfrm_sp->sel.prefixlen_s = sp.m_id.m_selector.m_src_mask;
+    xfrm_sp->sel.prefixlen_d = sp.m_id.m_selector.m_dst_mask;
 
     ///////////////////////////////////////
     //Set XFRM SP Lifetime Defaults
@@ -699,6 +699,98 @@ ipsec_ret IPsecNetlinkAPI::add_sp(const ipsec_sp& sp)
     return ipsec_ret::OK;
 }
 
+ipsec_ret IPsecNetlinkAPI::get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp)
+{
+    struct mnl_socket* nl_socket = nullptr;
+    struct nlmsghdr* nlh = nullptr;
+    struct xfrm_userpolicy_id* xfrm_spid = nullptr;
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    uint32_t seq = 0;
+    uint32_t pid = 0;
+
+    nlh = m_mnl_wrapper.nlmsg_put_header(buf);
+    if(nlh == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+
+    nlh->nlmsg_type = XFRM_MSG_GETPOLICY;
+    nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
+    nlh->nlmsg_seq = seq = time(nullptr);
+
+    xfrm_spid =
+            (struct xfrm_userpolicy_id*)m_mnl_wrapper.nlmsg_put_extra_header(nlh, sizeof(struct xfrm_userpolicy_id));
+    if(xfrm_spid == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+    memset(xfrm_spid, 0, sizeof(struct xfrm_userpolicy_id));
+
+    ///////////////////////////////////////
+    //Get Socket
+    if(create_socket(&nl_socket, 0) != ipsec_ret::OK)
+    {
+        return ipsec_ret::SOCKET_CREATE_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Set XFRM SP ID
+    memcpy(&xfrm_spid->sel.saddr, &sp_id.m_selector.m_src_addr, IP_ADDRESS_LENGTH);
+    memcpy(&xfrm_spid->sel.daddr, &sp_id.m_selector.m_dst_addr, IP_ADDRESS_LENGTH);
+    xfrm_spid->sel.prefixlen_s  = sp_id.m_selector.m_src_mask;
+    xfrm_spid->sel.prefixlen_d  = sp_id.m_selector.m_dst_mask;
+    xfrm_spid->sel.family       = sp_id.m_selector.m_addr_family;
+
+    xfrm_spid->dir              = (uint8_t)sp_id.m_dir;
+    //xfrm_spid->index            = sp_id->m_Index;
+
+    ///////////////////////////////////////
+    //Get Socket Port ID
+    pid = m_mnl_wrapper.socket_get_portid(nl_socket);
+
+    ///////////////////////////////////////
+    //Clean SP
+    sp = ipsec_sp();
+
+    ///////////////////////////////////////
+    //Send Request
+    ssize_t socketRet = m_mnl_wrapper.socket_sendto(nl_socket, nlh, nlh->nlmsg_len);
+    if(socketRet <= 0)
+    {
+        ///////////////////////////////////////
+        //Close Socket and return error
+        m_mnl_wrapper.socket_close(nl_socket);
+
+        return ipsec_ret::SOCKET_SEND_FAILED;
+    }
+
+    socketRet = m_mnl_wrapper.socket_recvfrom(nl_socket, buf, sizeof(buf));
+    if(socketRet > 0)
+    {
+        CB_Data data;
+        data.m_netlink_api = this;
+        data.user_data = &sp;
+        socketRet = m_mnl_wrapper.cb_run(buf, socketRet, seq, pid,
+                                         mnl_parse_xfrm_sp, &data);
+        if (socketRet <= MNL_CB_STOP)
+        {
+            //TODO: Log error printf("%s\n", strerror(errno));
+        }
+    }
+
+    ///////////////////////////////////////
+    //Close Socket
+    m_mnl_wrapper.socket_close(nl_socket);
+
+    ///////////////////////////////////////
+    //If Index was not set, SP was not found
+    if(sp.m_index == 0)
+    {
+        return ipsec_ret::NOT_FOUND;
+    }
+
+    return ipsec_ret::OK;
+}
 
 int IPsecNetlinkAPI::mnl_parse_xfrm_sp(const struct nlmsghdr* nlh, void* data)
 {
@@ -775,15 +867,15 @@ ipsec_ret IPsecNetlinkAPI::parse_xfrm_sp(struct xfrm_userpolicy_info* xfrm_sp,
     *sp = ipsec_sp();
 
     sp->m_action    = (ipsec_action)xfrm_sp->action;
-    sp->m_dir       = (ipsec_dir)xfrm_sp->dir;
+    sp->m_id.m_dir  = (ipsec_direction)xfrm_sp->dir;
     sp->m_priority  = xfrm_sp->priority;
     sp->m_index     = xfrm_sp->index;
 
-    memcpy(&sp->m_selector.m_src_addr, &xfrm_sp->sel.saddr, IP_ADDRESS_LENGTH);
-    memcpy(&sp->m_selector.m_dst_addr, &xfrm_sp->sel.daddr, IP_ADDRESS_LENGTH);
-    sp->m_selector.m_addr_family    = xfrm_sp->sel.family;
-    sp->m_selector.m_src_mask       = xfrm_sp->sel.prefixlen_s;
-    sp->m_selector.m_dst_mask       = xfrm_sp->sel.prefixlen_d;
+    memcpy(&sp->m_id.m_selector.m_src_addr, &xfrm_sp->sel.saddr, IP_ADDRESS_LENGTH);
+    memcpy(&sp->m_id.m_selector.m_dst_addr, &xfrm_sp->sel.daddr, IP_ADDRESS_LENGTH);
+    sp->m_id.m_selector.m_addr_family    = xfrm_sp->sel.family;
+    sp->m_id.m_selector.m_src_mask       = xfrm_sp->sel.prefixlen_s;
+    sp->m_id.m_selector.m_dst_mask       = xfrm_sp->sel.prefixlen_d;
 
     ///////////////////////////////////////
     //Fill in SP with attributes

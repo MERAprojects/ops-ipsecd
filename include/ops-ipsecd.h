@@ -142,13 +142,6 @@ enum class ipsec_credential_type : uint32_t
     rsa
 };
 
-enum class ipsec_dir
-{
-    in = 0,
-    out,
-    fwd
-};
-
 enum class ipsec_action
 {
     allow = 0,
@@ -237,8 +230,8 @@ enum class ipsec_state : int32_t
 
 enum class ipsec_direction : uint32_t
 {
-    outbound = 0,
-    inbound,
+    inbound = 0,
+    outbound,
     forward
 };
 
@@ -745,8 +738,8 @@ struct ipsec_tmpl
 
 struct ipsec_sp
 {
+    ipsec_sp_id m_id;
     uint32_t m_index            = 0;
-    ipsec_dir m_dir             = ipsec_dir::in;
     ipsec_action m_action       = ipsec_action::allow;
     uint32_t m_priority         = 0;
     ipsec_selector m_selector;

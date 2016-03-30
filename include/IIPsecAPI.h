@@ -59,7 +59,7 @@ class IIPsecAPI
          *
          * @param spi SPI of the SA to search for
          *
-         * @param sa SA to Load
+         * @param sa SA to load information into
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
@@ -82,6 +82,17 @@ class IIPsecAPI
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
         virtual ipsec_ret add_sp(const ipsec_sp& sp) = 0;
+
+        /**
+         * Gets a SP from the IPsec Kernel Module
+         *
+         * @param sp_id ID of the SP to search for
+         *
+         * @param sa SP to load information into
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp) = 0;
 
 };
 
