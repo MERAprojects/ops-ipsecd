@@ -566,6 +566,140 @@ ipsec_ret IPsecNetlinkAPI::parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
     return ipsec_ret::OK;
 }
 
+ipsec_ret IPsecNetlinkAPI::add_sp(const ipsec_sp& sp)
+{
+    struct mnl_socket* nl_socket = nullptr;
+    struct nlmsghdr* nlh = nullptr;
+    struct xfrm_userpolicy_info* xfrm_sp = nullptr;
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+
+    nlh = m_mnl_wrapper.nlmsg_put_header(buf);
+    if(nlh == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+
+    nlh->nlmsg_type     = XFRM_MSG_NEWPOLICY;
+    nlh->nlmsg_flags    = NLM_F_REQUEST | NLM_F_ACK | NLM_F_CREATE | NLM_F_EXCL;
+    nlh->nlmsg_seq      = time(nullptr);
+
+    xfrm_sp =
+       (struct xfrm_userpolicy_info*)m_mnl_wrapper.nlmsg_put_extra_header(nlh, sizeof(struct xfrm_userpolicy_info));
+    if(xfrm_sp == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+    memset(xfrm_sp, 0, sizeof(struct xfrm_userpolicy_info));
+
+    ///////////////////////////////////////
+    //Set XFRM SP Base
+    xfrm_sp->action     = (uint8_t)sp.m_action;
+    xfrm_sp->dir        = (uint8_t)sp.m_dir;
+    xfrm_sp->index      = sp.m_index;
+    xfrm_sp->priority   = sp.m_priority;
+
+    ///////////////////////////////////////
+    //Set XFRM SP Selector
+    memcpy(&xfrm_sp->sel.saddr, &sp.m_selector.m_src_addr, IP_ADDRESS_LENGTH);
+    memcpy(&xfrm_sp->sel.daddr, &sp.m_selector.m_dst_addr, IP_ADDRESS_LENGTH);
+    xfrm_sp->sel.family      = sp.m_selector.m_addr_family;
+    xfrm_sp->sel.prefixlen_s = sp.m_selector.m_src_mask;
+    xfrm_sp->sel.prefixlen_d = sp.m_selector.m_dst_mask;
+
+    ///////////////////////////////////////
+    //Set XFRM SP Lifetime Defaults
+    xfrm_sp->lft.soft_byte_limit            = XFRM_INF;
+    xfrm_sp->lft.hard_byte_limit            = XFRM_INF;
+
+    xfrm_sp->lft.soft_packet_limit          = XFRM_INF;
+    xfrm_sp->lft.hard_packet_limit          = XFRM_INF;
+
+    xfrm_sp->lft.hard_add_expires_seconds   = 0;
+    xfrm_sp->lft.soft_add_expires_seconds   = 0;
+
+    xfrm_sp->lft.hard_use_expires_seconds   = 0;
+    xfrm_sp->lft.soft_use_expires_seconds   = 0;
+
+    ///////////////////////////////////////
+    //Set XFRM SP Template Lists
+    if(!sp.m_template_lists.empty())
+    {
+        uint32_t numLists = sp.m_template_lists.size();
+        uint32_t size = sizeof(struct xfrm_user_tmpl) * numLists;
+
+        struct xfrm_user_tmpl* tmplArr = (struct xfrm_user_tmpl*)malloc(size);
+
+        memset(tmplArr, 0, size);
+
+        uint32_t i = 0;
+        for(const ipsec_tmpl& tmpList : sp.m_template_lists)
+        {
+            memcpy(&tmplArr[i].saddr, &tmpList.m_src_ip, IP_ADDRESS_LENGTH);
+            memcpy(&tmplArr[i].id.daddr, &tmpList.m_dst_ip, IP_ADDRESS_LENGTH);
+
+            tmplArr[i].family       = tmpList.m_addr_family;
+            tmplArr[i].mode         = (uint8_t)tmpList.m_mode;
+            tmplArr[i].id.proto     = tmpList.m_protocol;
+            tmplArr[i].reqid        = tmpList.m_req_id;
+
+            tmplArr[i].ealgos       = (~(uint32_t)0);
+            tmplArr[i].aalgos       = (~(uint32_t)0);
+            tmplArr[i].calgos       = (~(uint32_t)0);
+
+            ++i;
+        }
+
+        ///////////////////////////////////////
+        //Set Attribute to Netlink
+        m_mnl_wrapper.attr_put(nlh, XFRMA_TMPL, size, tmplArr);
+
+        ///////////////////////////////////////
+        //Free the memory
+        free(tmplArr);
+    }
+
+    ///////////////////////////////////////
+    //Get Socket
+    if(create_socket(&nl_socket, 0) != ipsec_ret::OK)
+    {
+        return ipsec_ret::SOCKET_CREATE_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Send Request and Listen for ACK
+    if (m_mnl_wrapper.socket_sendto(nl_socket, nlh, nlh->nlmsg_len) < 0)
+    {
+        m_mnl_wrapper.socket_close(nl_socket);
+
+        return ipsec_ret::SOCKET_SEND_FAILED;
+    }
+
+
+    if(m_mnl_wrapper.socket_recvfrom(nl_socket, buf, sizeof(buf)) < 0)
+    {
+        m_mnl_wrapper.socket_close(nl_socket);
+
+        return ipsec_ret::SOCKET_RECV_FAILED;
+    }
+
+    m_mnl_wrapper.socket_close(nl_socket);
+
+    ///////////////////////////////////////
+    //Check if Netlink returned any errors
+    const struct nlmsgerr* err =
+            (const struct nlmsgerr*)m_mnl_wrapper.nlmsg_get_payload(nlh);
+    if(err->error != 0)
+    {
+        errno = -err->error;
+        return ipsec_ret::ADD_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Finish
+    return ipsec_ret::OK;
+}
+
+
 int IPsecNetlinkAPI::mnl_parse_xfrm_sp(const struct nlmsghdr* nlh, void* data)
 {
     if(data == nullptr)

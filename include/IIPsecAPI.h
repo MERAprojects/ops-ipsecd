@@ -74,6 +74,15 @@ class IIPsecAPI
          */
         virtual ipsec_ret del_sa(uint32_t spi) = 0;
 
+        /**
+         * Loads a new SP to the IPsec Kernel Module
+         *
+         * @param sp SP to load
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret add_sp(const ipsec_sp& sp) = 0;
+
 };
 
 #endif /* IIPSECAPI_H */
