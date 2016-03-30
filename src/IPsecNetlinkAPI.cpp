@@ -245,22 +245,22 @@ ipsec_ret IPsecNetlinkAPI::add_sa(const ipsec_sa& sa)
 
 ipsec_ret IPsecNetlinkAPI::get_sa(uint32_t spi, ipsec_sa& sa)
 {
-    struct mnl_socket* nl_socket = NULL;
-    struct nlmsghdr* nlh = NULL;
-    struct xfrm_usersa_id* xfrm_said = NULL;
+    struct mnl_socket* nl_socket = nullptr;
+    struct nlmsghdr* nlh = nullptr;
+    struct xfrm_usersa_id* xfrm_said = nullptr;
     char buf[MNL_SOCKET_BUFFER_SIZE];
     uint32_t seq = 0;
     uint32_t pid = 0;
 
     nlh = m_mnl_wrapper.nlmsg_put_header(buf);
-    if(nlh == NULL)
+    if(nlh == nullptr)
     {
         return ipsec_ret::ALLOC_FAILED;
     }
 
     nlh->nlmsg_type = XFRM_MSG_GETSA;
     nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_DUMP;
-    nlh->nlmsg_seq = seq = time(NULL);
+    nlh->nlmsg_seq = seq = time(nullptr);
 
     xfrm_said =
          (struct xfrm_usersa_id*)m_mnl_wrapper.nlmsg_put_extra_header(nlh,
@@ -332,6 +332,78 @@ ipsec_ret IPsecNetlinkAPI::get_sa(uint32_t spi, ipsec_sa& sa)
     return ipsec_ret::OK;
 }
 
+ipsec_ret IPsecNetlinkAPI::del_sa(uint32_t spi)
+{
+    struct mnl_socket* nl_socket = nullptr;
+    struct nlmsghdr* nlh = nullptr;
+    struct xfrm_usersa_id* xfrm_said = nullptr;
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    uint32_t seq = 0;
+
+    nlh = m_mnl_wrapper.nlmsg_put_header(buf);
+    if(nlh == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+
+    nlh->nlmsg_type = XFRM_MSG_DELSA;
+    nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
+    nlh->nlmsg_seq = seq = time(nullptr);
+
+    xfrm_said =
+        (struct xfrm_usersa_id*)m_mnl_wrapper.nlmsg_put_extra_header(nlh,
+                                                 sizeof(struct xfrm_usersa_id));
+    if(xfrm_said == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+    memset(xfrm_said, 0, sizeof(struct xfrm_usersa_id));
+
+    ///////////////////////////////////////
+    //Get Socket
+    if(create_socket(&nl_socket, 0) != ipsec_ret::OK)
+    {
+        return ipsec_ret::SOCKET_CREATE_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Set XFRM SA SPI
+    xfrm_said->spi     = htonl(spi);
+
+    ///////////////////////////////////////
+    //Send Request
+    if(m_mnl_wrapper.socket_sendto(nl_socket, nlh, nlh->nlmsg_len) <= 0)
+    {
+        return ipsec_ret::SOCKET_SEND_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Get Answer
+    if (m_mnl_wrapper.socket_recvfrom(nl_socket, buf, sizeof(buf)) <= 0)
+    {
+        return ipsec_ret::SOCKET_RECV_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Close Socket
+    m_mnl_wrapper.socket_close(nl_socket);
+
+    ///////////////////////////////////////
+    //Check if Netlink returned any errors
+    const struct nlmsgerr* err =
+            (const struct nlmsgerr*)m_mnl_wrapper.nlmsg_get_payload(nlh);
+    if(err->error != 0)
+    {
+        errno = -err->error;
+
+        //TODO: Log Error printf("%s\n", strerror(errno));
+
+        return ipsec_ret::NOT_FOUND;
+    }
+
+    return ipsec_ret::OK;
+}
+
 int IPsecNetlinkAPI::parse_nested_attr(const struct nlattr* nl_attr, void* data)
 {
     if(data == nullptr)
@@ -379,7 +451,7 @@ int IPsecNetlinkAPI::mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data)
         return MNL_CB_ERROR;
     }
 
-    if(data == NULL)
+    if(data == nullptr)
     {
         return MNL_CB_ERROR;
     }
@@ -392,7 +464,7 @@ int IPsecNetlinkAPI::mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data)
     ///////////////////////////////////////
     //Retrieve XFRM SA Info
     struct xfrm_usersa_info* xfrm_sa = (struct xfrm_usersa_info*)payload;
-    if(xfrm_sa == NULL)
+    if(xfrm_sa == nullptr)
     {
         return MNL_CB_ERROR;
     }
@@ -462,7 +534,7 @@ ipsec_ret IPsecNetlinkAPI::parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
 
     ///////////////////////////////////////
     //Fill in SA with attributes
-    if(nl_attrs[XFRMA_ALG_CRYPT] != NULL)
+    if(nl_attrs[XFRMA_ALG_CRYPT] != nullptr)
     {
         sa->m_crypt_set = true;
 
@@ -476,7 +548,7 @@ ipsec_ret IPsecNetlinkAPI::parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
         sa->m_crypt.m_name = std::string(xfrm_crypt->alg_name);
     }
 
-    if(nl_attrs[XFRMA_ALG_AUTH] != NULL)
+    if(nl_attrs[XFRMA_ALG_AUTH] != nullptr)
     {
         sa->m_auth_set = true;
 

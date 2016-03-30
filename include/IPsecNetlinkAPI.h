@@ -101,6 +101,11 @@ class IPsecNetlinkAPI : public IIPsecAPI
          */
         ipsec_ret get_sa(uint32_t spi, ipsec_sa& sa) override;
 
+        /**
+         * @copydoc IPsecAPI::del_sa
+         */
+        ipsec_ret del_sa(uint32_t spi) override;
+
 };
 
 #endif /* IIPSECNETLINKAPI_H */
