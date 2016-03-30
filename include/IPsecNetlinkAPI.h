@@ -146,6 +146,11 @@ class IPsecNetlinkAPI : public IIPsecAPI
          */
         ipsec_ret get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp) override;
 
+        /**
+         * @copydoc IPsecAPI::del_sp
+         */
+        ipsec_ret del_sp(const ipsec_sp_id& sp_id) override;
+
 };
 
 #endif /* IIPSECNETLINKAPI_H */

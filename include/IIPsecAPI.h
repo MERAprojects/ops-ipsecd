@@ -94,6 +94,15 @@ class IIPsecAPI
          */
         virtual ipsec_ret get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp) = 0;
 
+        /**
+         * Deletes a SP from the IPsec Kernel Module
+         *
+         * @param sp_id ID of the SA to remove
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret del_sp(const ipsec_sp_id& sp_id) = 0;
+
 };
 
 #endif /* IIPSECAPI_H */

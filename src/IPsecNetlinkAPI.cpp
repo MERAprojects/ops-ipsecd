@@ -792,6 +792,84 @@ ipsec_ret IPsecNetlinkAPI::get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp)
     return ipsec_ret::OK;
 }
 
+ipsec_ret IPsecNetlinkAPI::del_sp(const ipsec_sp_id& sp_id)
+{
+    struct mnl_socket* nl_socket = nullptr;
+    struct nlmsghdr* nlh = nullptr;
+    struct xfrm_userpolicy_id* xfrm_spid = nullptr;
+    char buf[MNL_SOCKET_BUFFER_SIZE];
+    uint32_t seq = 0;
+
+    nlh = m_mnl_wrapper.nlmsg_put_header(buf);
+    if(nlh == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+
+    nlh->nlmsg_type = XFRM_MSG_DELPOLICY;
+    nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
+    nlh->nlmsg_seq = seq = time(nullptr);
+
+    xfrm_spid =
+            (struct xfrm_userpolicy_id*)m_mnl_wrapper.nlmsg_put_extra_header(nlh, sizeof(struct xfrm_userpolicy_id));
+    if(xfrm_spid == nullptr)
+    {
+        return ipsec_ret::ALLOC_FAILED;
+    }
+    memset(xfrm_spid, 0, sizeof(struct xfrm_userpolicy_id));
+
+    ///////////////////////////////////////
+    //Get Socket
+    if(create_socket(&nl_socket, 0) != ipsec_ret::OK)
+    {
+        return ipsec_ret::SOCKET_CREATE_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Set XFRM SP ID
+    memcpy(&xfrm_spid->sel.saddr, &sp_id.m_selector.m_src_addr, IP_ADDRESS_LENGTH);
+    memcpy(&xfrm_spid->sel.daddr, &sp_id.m_selector.m_dst_addr, IP_ADDRESS_LENGTH);
+    xfrm_spid->sel.prefixlen_s  = sp_id.m_selector.m_src_mask;
+    xfrm_spid->sel.prefixlen_d  = sp_id.m_selector.m_dst_mask;
+    xfrm_spid->sel.family       = sp_id.m_selector.m_addr_family;
+
+    xfrm_spid->dir              = (uint8_t)sp_id.m_dir;
+    //xfrm_spid->index            = sp_id->m_Index;
+
+    ///////////////////////////////////////
+    //Send Request
+    if(m_mnl_wrapper.socket_sendto(nl_socket, nlh, nlh->nlmsg_len) <= 0)
+    {
+        return ipsec_ret::SOCKET_SEND_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Get Answer
+    if (m_mnl_wrapper.socket_recvfrom(nl_socket, buf, sizeof(buf)) <= 0)
+    {
+        m_mnl_wrapper.socket_close(nl_socket);
+
+        return ipsec_ret::SOCKET_RECV_FAILED;
+    }
+
+    ///////////////////////////////////////
+    //Close Socket
+    m_mnl_wrapper.socket_close(nl_socket);
+
+    ///////////////////////////////////////
+    //Check if Netlink returned any errors
+    const struct nlmsgerr* err =
+            (const struct nlmsgerr*)m_mnl_wrapper.nlmsg_get_payload(nlh);
+    if(err->error != 0)
+    {
+        errno = -err->error;
+        //TODO: Log error printf("%s\n", strerror(errno));
+        return ipsec_ret::NOT_FOUND;
+    }
+
+    return ipsec_ret::OK;
+}
+
 int IPsecNetlinkAPI::mnl_parse_xfrm_sp(const struct nlmsghdr* nlh, void* data)
 {
     if(data == nullptr)
