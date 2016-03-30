@@ -54,8 +54,33 @@ class IPsecNetlinkAPI : public IIPsecAPI
          */
         ipsec_ret create_socket(struct mnl_socket** nl_socket, uint32_t groups);
 
+        /**
+         * Parses the XFRM SA structure and saves it into a ipsec_sa structure
+         *
+         * @param xfrm_sa SA to parse
+         *
+         * @param nl_attrs Attributes the XFRM struct contains
+         *
+         * @param sa SA struct to save data
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
         ipsec_ret parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
                                 struct nlattr** nl_attrs, ipsec_sa* sa);
+
+        /**
+         * Parses the XFRM SP structure and saves it into a ipsec_sp structure
+         *
+         * @param xfrm_sp SP to parse
+         *
+         * @param nl_attrs Attributes the XFRM struct contains
+         *
+         * @param sa SP struct to save data
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        ipsec_ret parse_xfrm_sp(struct xfrm_userpolicy_info* xfrm_sp,
+                                struct nlattr** nl_attrs, ipsec_sp* sp);
 
         /**
          * MNL Callback when parsing attributes
@@ -66,6 +91,11 @@ class IPsecNetlinkAPI : public IIPsecAPI
          * MNL Parser for XFRM SA Message
          */
         static int mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data);
+
+        /**
+         * MNL Parser for XFRM SP Message
+         */
+        static int mnl_parse_xfrm_sp(const struct nlmsghdr* nlh, void* data);
 
     public:
 

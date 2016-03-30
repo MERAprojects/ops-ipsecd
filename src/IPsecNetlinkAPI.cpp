@@ -475,20 +475,21 @@ int IPsecNetlinkAPI::mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data)
 
     ///////////////////////////////////////
     //Netlink Attributes
-    struct nlattr* nlAttrs[XFRMA_MAX + 1] = { 0 };
+    struct nlattr* nl_attrs[XFRMA_MAX + 1] = { 0 };
 
     ///////////////////////////////////////
     //Parse the Netlink Conntrack Attributes
     CB_Data user_data;
     user_data.m_netlink_api = cbData->m_netlink_api;
-    user_data.user_data = nlAttrs;
+    user_data.user_data = nl_attrs;
     if(mnl_wrapper.attr_parse_payload(payload, payloadLen,
                                       parse_nested_attr, &user_data) < 0)
     {
         return MNL_CB_ERROR;
     }
 
-    if(cbData->m_netlink_api->parse_xfrm_sa(xfrm_sa, nlAttrs, sa) != ipsec_ret::OK)
+    if(cbData->m_netlink_api->parse_xfrm_sa(xfrm_sa, nl_attrs, sa)
+            != ipsec_ret::OK)
     {
         return MNL_CB_ERROR;
     }
@@ -560,6 +561,120 @@ ipsec_ret IPsecNetlinkAPI::parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
         sa->m_auth.m_key = ipsecd_helper::key_to_str(xfrm_auth->alg_key, key_size);
 
         sa->m_auth.m_name = std::string(xfrm_auth->alg_name);
+    }
+
+    return ipsec_ret::OK;
+}
+
+int IPsecNetlinkAPI::mnl_parse_xfrm_sp(const struct nlmsghdr* nlh, void* data)
+{
+    if(data == nullptr)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    CB_Data* cbData = (CB_Data*)data;
+    ILibmnlWrapper& mnl_wrapper = cbData->m_netlink_api->m_mnl_wrapper;
+    ipsec_sp* sp = (ipsec_sp*)cbData->user_data;
+
+    if(nlh->nlmsg_type != XFRM_MSG_NEWPOLICY &&
+       nlh->nlmsg_type != XFRM_MSG_DELPOLICY &&
+       nlh->nlmsg_type != XFRM_MSG_GETPOLICY &&
+       nlh->nlmsg_type != XFRM_MSG_UPDPOLICY)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    if(data == nullptr)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    ///////////////////////////////////////
+    //Get Payload
+    uint8_t* payload = (uint8_t*)mnl_wrapper.nlmsg_get_payload(nlh);
+    size_t payloadLen = nlh->nlmsg_len - sizeof(struct xfrm_userpolicy_info);
+
+    ///////////////////////////////////////
+    //Retrieve XFRM SP Info
+    struct xfrm_userpolicy_info* xfrm_sp = (struct xfrm_userpolicy_info*)payload;
+    if(xfrm_sp == nullptr)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    ///////////////////////////////////////
+    //Advance Payload Pointer to start of Attributes
+    payload += sizeof(struct xfrm_userpolicy_info);
+
+    ///////////////////////////////////////
+    //Netlink Attributes
+    struct nlattr* nl_attrs[XFRMA_MAX + 1] = { 0 };
+
+    ///////////////////////////////////////
+    //Parse the Netlink Conntrack Attributes
+    if(mnl_wrapper.attr_parse_payload(payload, payloadLen,
+                                      parse_nested_attr, nl_attrs) < 0)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    if(cbData->m_netlink_api->parse_xfrm_sp(xfrm_sp, nl_attrs, sp)
+            != ipsec_ret::OK)
+    {
+        return MNL_CB_ERROR;
+    }
+
+    return MNL_CB_OK;
+}
+
+ipsec_ret IPsecNetlinkAPI::parse_xfrm_sp(struct xfrm_userpolicy_info* xfrm_sp,
+                                         struct nlattr** nl_attrs, ipsec_sp* sp)
+{
+    if(xfrm_sp == nullptr || nl_attrs == nullptr || sp == nullptr)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+
+    ///////////////////////////////////////
+    //Fill in base SA Information
+    *sp = ipsec_sp();
+
+    sp->m_action    = (ipsec_action)xfrm_sp->action;
+    sp->m_dir       = (ipsec_dir)xfrm_sp->dir;
+    sp->m_priority  = xfrm_sp->priority;
+    sp->m_index     = xfrm_sp->index;
+
+    memcpy(&sp->m_selector.m_src_addr, &xfrm_sp->sel.saddr, IP_ADDRESS_LENGTH);
+    memcpy(&sp->m_selector.m_dst_addr, &xfrm_sp->sel.daddr, IP_ADDRESS_LENGTH);
+    sp->m_selector.m_addr_family    = xfrm_sp->sel.family;
+    sp->m_selector.m_src_mask       = xfrm_sp->sel.prefixlen_s;
+    sp->m_selector.m_dst_mask       = xfrm_sp->sel.prefixlen_d;
+
+    ///////////////////////////////////////
+    //Fill in SP with attributes
+    if(nl_attrs[XFRMA_TMPL] != nullptr)
+    {
+        struct xfrm_user_tmpl* xfrm_tmpl
+                 = (struct xfrm_user_tmpl*)m_mnl_wrapper.attr_get_payload(nl_attrs[XFRMA_TMPL]);
+
+        uint32_t numTemplates = m_mnl_wrapper.attr_get_len(nl_attrs[XFRMA_TMPL]);
+        numTemplates /= sizeof(struct xfrm_user_tmpl);
+
+        for(uint32_t i = 0; xfrm_tmpl != nullptr && i < numTemplates; i++, xfrm_tmpl++)
+        {
+            ipsec_tmpl tmpList;
+
+            memcpy(&tmpList.m_src_ip, &xfrm_tmpl->saddr, IP_ADDRESS_LENGTH);
+            memcpy(&tmpList.m_dst_ip, &xfrm_tmpl->id.daddr, IP_ADDRESS_LENGTH);
+
+            tmpList.m_addr_family    = xfrm_tmpl->family;
+            tmpList.m_protocol       = xfrm_tmpl->id.proto;
+            tmpList.m_mode           = (ipsec_mode)xfrm_tmpl->mode;
+            tmpList.m_req_id         = xfrm_tmpl->reqid;
+
+            sp->m_template_lists.push_back(tmpList);
+        }
     }
 
     return ipsec_ret::OK;

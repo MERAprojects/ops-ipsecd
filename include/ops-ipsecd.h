@@ -740,7 +740,7 @@ struct ipsec_tmpl
     ip_addr_t m_dst_ip      = { 0 };
     uint8_t m_protocol      = 0;
     uint32_t m_req_id       = 0;
-    ipsec_mode m_Mode       = ipsec_mode::transport;;
+    ipsec_mode m_mode       = ipsec_mode::transport;;
 };
 
 struct ipsec_sp

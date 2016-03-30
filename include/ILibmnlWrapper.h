@@ -189,6 +189,15 @@ class ILibmnlWrapper
         virtual uint16_t attr_get_type(const struct nlattr* attr) = 0;
 
         /**
+         * Get length of netlink attribute.
+         *
+         * @param attr Pointer to netlink attribute.
+         *
+         * @return The attribute length.
+         */
+        virtual uint16_t attr_get_len(const struct nlattr* attr) = 0;
+
+        /**
          * Check if the attribute type is valid.
          * <p>
          * Strict attribute checking in user-space is not a good idea since you may run an

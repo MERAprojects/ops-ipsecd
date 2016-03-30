@@ -90,6 +90,11 @@ uint16_t LibmnlWrapper::attr_get_type(const struct nlattr* attr)
     return mnl_attr_get_type(attr);
 }
 
+uint16_t LibmnlWrapper::attr_get_len(const struct nlattr* attr)
+{
+    return mnl_attr_get_len(attr);
+}
+
 int32_t LibmnlWrapper::attr_type_valid(const struct nlattr* attr, uint16_t max)
 {
     return mnl_attr_type_valid(attr, max);
