@@ -86,6 +86,7 @@ set (SOURCES
         ${SRC_DIR}/ConfigTaskIKE.cpp
         ${SRC_DIR}/IPsecNetlinkAPI.cpp
         ${SRC_DIR}/LibmnlWrapper.cpp
+        ${SRC_DIR}/Orchestrator.cpp
 )
 
 # Rules to build ops-ipsecd

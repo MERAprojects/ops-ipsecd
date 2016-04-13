@@ -27,11 +27,14 @@
 /**********************************
 *Local Includes
 **********************************/
-#include "MapFile.h"
 #include "ViciAPI.h"
+#include "MapFile.h"
 #include "DebugMode.h"
 #include "IKEViciAPI.h"
 #include "SystemCalls.h"
+#include "Orchestrator.h"
+#include "LibmnlWrapper.h"
+#include "IPsecNetlinkAPI.h"
 #include "ViciStreamParser.h"
 
 /**
@@ -75,17 +78,21 @@ int main( int argc, const char* argv[] )
     SystemCalls systemCalls;
     MapFile mapFile(systemCalls);
     IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, mapFile);
+    LibmnlWrapper mnl_wrapper;
+    IPsecNetlinkAPI ipsec_netlink(mnl_wrapper);
+    Orchestrator ipsec_orchest(ikeViciApi);
 
     //Set Signal
     ipsecd_signal_set_mask();
 
-    if (ikeViciApi.initialize() != ipsec_ret::OK)
+    if (ipsec_orchest.initialize() != ipsec_ret::OK)
     {
         exit(EXIT_FAILURE);
     }
 
-    DebugMode *debugger = DebugMode::createInst(ikeViciApi, argc,
-            (char **) argv);
+    DebugMode *debugger = DebugMode::createInst(
+            ikeViciApi,ipsec_netlink, argc, (char **) argv);
+
     while(g_IsRunning && debugger->uccIsRunning())
     {
         debugger->ucc_run();
@@ -96,4 +103,3 @@ int main( int argc, const char* argv[] )
 
     return EXIT_SUCCESS;
 }
-

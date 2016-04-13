@@ -137,5 +137,15 @@ class UnixctlCommandsUtils
         */
         static void ipsecd_unixctl_help(struct unixctl_conn* conn,
                 int argc_c, const char* argv_c[], void *auxListener);
+        /**
+        * Handle used by unixctl when ipsecd/sa is called
+        */
+        static void ipsecd_unixctl_sa(struct unixctl_conn* conn,
+                int argc_c, const char* argv_c[], void *auxListener);
+        /**
+        * Handle used by unixctl when ipsecd/sp is called
+        */
+        static void ipsecd_unixctl_sp(struct unixctl_conn* conn,
+                int argc_c, const char* argv_c[], void *auxListener);
 };
 #endif /*__UNIXCTL_COMMANDS_UTILS*/

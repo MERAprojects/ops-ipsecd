@@ -28,6 +28,7 @@
 #include "UnixctlCommands.h"
 #include "ops_ipsecd_helper.h"
 #include "DebugMode.h"
+#include <arpa/inet.h>
 
 /**
 * Return true if the input word is a valid input for the especific command
@@ -111,6 +112,7 @@ static bool ipsec_ucc_set_dgroup(const std::string value,
     }
     return result;
 }
+
 static bool ipsec_ucc_set_integrity(const std::string value,
         ipsec_ike_connection &conn)
 {
@@ -219,8 +221,37 @@ static bool ipsec_ucc_set_authmethod(const std::string value,
     return result;
 }
 
-static bool ipsec_ucc_set_mode(const std::string value,
-        ipsec_ike_connection &conn)
+static bool ipsec_ucc_set_action(const std::string value,
+        ipsec_action& m_element)
+{
+    bool result = false;
+    const int elements = 2;
+
+    /*Valid values for mode key word*/
+    const std::string str_values[] =
+    {
+        "allow",
+        "block"
+    };
+
+    const ipsec_action all_modes[] =
+    {
+        ipsec_action::allow,
+        ipsec_action::block
+    };
+    for (int idx = 0; idx < elements ; idx++)
+    {
+        if (value.compare(str_values[idx]) == 0)
+        {
+            result = true;
+            m_element = all_modes[idx];
+            break;
+        }
+    }
+    return result;
+}
+
+static bool ipsec_ucc_set_mode(const std::string value, ipsec_mode& m_element)
 {
     bool result = false;
     const int elements = 2;
@@ -241,7 +272,8 @@ static bool ipsec_ucc_set_mode(const std::string value,
         if (value.compare(str_values[idx]) == 0)
         {
             result = true;
-            conn.m_child_sa.m_mode = all_modes[idx];
+            //conn.m_child_sa.m_mode = all_modes[idx];
+            m_element = all_modes[idx];
             break;
         }
     }
@@ -338,6 +370,609 @@ static bool get_connection_stats(const std::string conn_name,
     return true;
 }
 
+static bool ipsec_ucc_str_to_ipv4(std::string ip_str, in_addr_t& ipv4_addr)
+{
+    struct sockaddr_in add;
+
+        //put address number into add
+    if (inet_pton(AF_INET, ip_str.c_str(), &(add.sin_addr)) == 1)
+    {
+        ipv4_addr = (in_addr_t)(add.sin_addr.s_addr);
+        return true;
+    }
+    return false;
+}
+
+static bool ipsec_ucc_str_to_ipsec_direction(std::string str_dir,
+        ipsec_direction& direction)
+{
+    bool result = false;
+    const int elements = 3;
+
+    /*Valid values for direction key word*/
+    const std::string str_values[] =
+    {
+        "in",
+        "out",
+        "fwd"
+     };
+    const ipsec_direction all_dir_values[] =
+    {
+        ipsec_direction::inbound,
+        ipsec_direction::outbound,
+        ipsec_direction::forward
+    };
+    for (int idx = 0; idx < elements ; idx++)
+    {
+        if (str_dir.compare(str_values[idx]) == 0)
+        {
+            result = true;
+            direction = all_dir_values[idx];
+            break;
+        }
+    }
+    return result;
+
+}
+
+ipsec_ret ipsec_ucc_get_sp_subcmd(int argc, const char **argv,
+        int& c_index, ipsec_sp& sp, ipsec_sp_id& sp_id, DebugMode *debugger)
+{
+    ipsec_ret result = ipsec_ret::ERR;
+
+    const std::string get_params[] =
+    {
+        "direction",
+        "ip",
+        "mask"
+    };
+
+    enum param_index: uint32_t
+    {
+        DIRECTION,
+        IP,
+        MASK
+    };
+
+    /*copy for current global index parameter*/
+    int index = c_index + 1;
+
+    /*Index for key word in get_params*/
+    int in_index = -1;
+
+    /*Min number of arguments allowed for get sp subcommand*/
+    const int argc_allowed = 8;
+
+    bool found = false;
+
+    /*Number of keywords allowed for this command*/
+    const int k_allowed = 3;
+
+    /*String to save the next keyword*/
+    std::string next_str = "";
+    std::string in_word = "";
+
+    if (argc<(argc_allowed + c_index))
+    {
+        /*Input Error*/
+        return result;
+    }
+    while(index <= (c_index + argc_allowed))
+    {
+        /*Current word to parse*/
+        in_word.assign(argv[index]);
+
+        found = ipsecd_ucc_getIndex(get_params, in_word, k_allowed,
+            in_index);
+        if (found && argc >= (index +2))
+        {
+            switch(in_index)
+            {
+                case DIRECTION:
+                    next_str.assign(argv[index + 1]);
+                    if(!ipsec_ucc_str_to_ipsec_direction(next_str,
+                                sp_id.m_dir))
+                    {
+                        return result;
+                    }
+                    index = index + 2;
+                    break;
+                case IP:
+                     /*2 more args are required*/
+                     if(argc >= (index + 3))
+                    {
+                        /*For IPv4 only*/
+                        next_str.assign(argv[index + 1]);
+
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sp_id.m_selector.m_src_addr.m_ipv4)))
+                        {
+                            return result;
+                        }
+                        next_str.assign(argv[index + 2]);
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sp_id.m_selector.m_dst_addr.m_ipv4)))
+                        {
+                            return result;
+                        }
+                    }
+
+                    else
+                    {
+                        return result;
+                    }
+                    index = index + 3;
+                    break;
+                case MASK:
+                    /*2 more args are required*/
+                    if(argc >= (index + 2))
+                    {
+                        next_str.assign(argv[index + 1]);
+                        if (std::stoi(next_str, nullptr, 0) > 255)
+                        {
+                            return result;
+                        }
+                        sp_id.m_selector.m_src_mask = std::stoi(
+                                next_str, nullptr, 0);
+                        next_str.assign(argv[index + 2]);
+                        if (std::stoi(next_str, nullptr, 0) > 255)
+                        {
+                            return result;
+                        }
+                        sp_id.m_selector.m_dst_mask = std::stoi(
+                                next_str, nullptr, 0);
+                    }
+                    else
+                    {
+                        return result;
+                    }
+                    index = index + 3;
+                    break;
+                default:
+                    return result;
+            }
+        }
+        else
+        {
+            return result;
+        }
+    }
+    result = debugger->get_sp(sp_id, sp);
+    return result;
+}
+
+ipsec_ret ipsec_ucc_delete_sa_subcmd(int argc, const char **argv,
+        int& c_index, ipsec_sa_id& id, DebugMode *debugger)
+{
+    ipsec_ret result = ipsec_ret::ERR;
+
+    const std::string delete_params[] =
+    {
+        "spi",
+        "proto",
+        "ip"
+    };
+
+    enum param_index: uint32_t
+    {
+        SPI,
+        PROTO,
+        IP
+    };
+
+    /*copy for current global index parameter*/
+    int index = c_index + 1;
+
+    /*Index for key word in delete_params*/
+    int in_index = -1;
+
+    /*Min number of arguments allowed for get sp subcommand*/
+    const int argc_allowed = 7;
+
+    bool found = false;
+
+    /*Number of keywords allowed for this command*/
+    const int k_allowed = 3;
+
+    /*String to save the next keyword*/
+    std::string next_str = "";
+    std::string in_word = "";
+    if (argc<(argc_allowed + c_index))
+    {
+        /*Input Error*/
+        return result;
+    }
+    while(index <= (c_index + argc_allowed))
+    {
+        /*Current word to parse*/
+        in_word.assign(argv[index]);
+
+        found = ipsecd_ucc_getIndex(delete_params, in_word, k_allowed,
+            in_index);
+
+        if (found && argc >= (index +2))
+        {
+            switch(in_index)
+            {
+                case SPI:
+                    next_str.assign(argv[index + 1]);
+                    id.m_spi= std::stoi(next_str, nullptr, 0);
+                    index = index + 2;
+                    break;
+                case PROTO:
+                    next_str.assign(argv[index + 1]);
+                    if (std::stoi(next_str, nullptr, 0) > 255)
+                    {
+                        return result;
+                    }
+                    id.m_protocol= std::stoi(next_str, nullptr, 0);
+                    index = index + 2;
+                    break;
+                case IP:
+                     /*2 more args are required*/
+                     if(argc >= (index + 3))
+                    {
+                        /*For IPv4 only*/
+                        next_str.assign(argv[index + 1]);
+
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                        id.m_src_ip.m_ipv4)))
+                        {
+                            return result;
+                        }
+                        next_str.assign(argv[index + 2]);
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                        id.m_dst_ip.m_ipv4)))
+                        {
+                            return result;
+                        }
+                        /*TODO: remove default values*/
+                        id.m_addr_family = AF_INET;
+                    }
+
+                    else
+                    {
+                        return result;
+                    }
+                    index = index + 3;
+                    break;
+                default:
+                    return result;
+            }
+        }
+        else
+        {
+            return result;
+        }
+    }
+    result = debugger->del_sa(id);
+    return result;
+}
+
+ipsec_ret ipsec_ucc_delete_sp_subcmd(int argc, const char **argv,
+        int& c_index, ipsec_sp_id& sp_id, DebugMode *debugger)
+{
+    ipsec_ret result = ipsec_ret::ERR;
+
+    const std::string delete_params[] =
+    {
+        "direction",
+        "ip",
+        "mask"
+    };
+
+    enum param_index: uint32_t
+    {
+        DIRECTION,
+        IP,
+        MASK
+    };
+
+    /*copy for current global index parameter*/
+    int index = c_index + 1;
+
+    /*Index for key word in delete_params*/
+    int in_index = -1;
+
+    /*Min number of arguments allowed for get sp subcommand*/
+    const int argc_allowed = 8;
+
+    bool found = false;
+
+    /*Number of keywords allowed for this command*/
+    const int k_allowed = 3;
+
+    /*String to save the next keyword*/
+    std::string next_str = "";
+    std::string in_word = "";
+
+    if (argc<(argc_allowed + c_index))
+    {
+        /*Input Error*/
+        return result;
+    }
+    while(index <= (c_index + argc_allowed))
+    {
+        /*Current word to parse*/
+        in_word.assign(argv[index]);
+
+        found = ipsecd_ucc_getIndex(delete_params, in_word, k_allowed,
+            in_index);
+
+        if (found && argc >= (index +2))
+        {
+            switch(in_index)
+            {
+                case DIRECTION:
+                    next_str.assign(argv[index + 1]);
+                    if(!ipsec_ucc_str_to_ipsec_direction(next_str,
+                                sp_id.m_dir))
+                    {
+                        return result;
+                    }
+                    index = index + 2;
+                    break;
+                case IP:
+                     /*2 more args are required*/
+                     if(argc >= (index + 3))
+                    {
+                        /*For IPv4 only*/
+                        next_str.assign(argv[index + 1]);
+
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sp_id.m_selector.m_src_addr.m_ipv4)))
+                        {
+                            return result;
+                        }
+                        next_str.assign(argv[index + 2]);
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sp_id.m_selector.m_dst_addr.m_ipv4)))
+                        {
+                            return result;
+                        }
+                    }
+
+                    else
+                    {
+                        return result;
+                    }
+                    index = index + 3;
+                    break;
+                case MASK:
+                    /*2 more args are required*/
+                    if(argc >= (index + 2))
+                    {
+                        next_str.assign(argv[index + 1]);
+                        if (std::stoi(next_str, nullptr, 0) > 255)
+                        {
+                            return result;
+                        }
+                        sp_id.m_selector.m_src_mask = std::stoi(
+                                next_str, nullptr, 0);
+                        next_str.assign(argv[index + 2]);
+                        if (std::stoi(next_str, nullptr, 0) > 255)
+                        {
+                            return result;
+                        }
+                        sp_id.m_selector.m_dst_mask = std::stoi(
+                                next_str, nullptr, 0);
+                    }
+                    else
+                    {
+                        return result;
+                    }
+                    index = index + 3;
+                    break;
+                default:
+                    return result;
+            }
+        }
+        else
+        {
+            return result;
+        }
+    }
+    result = debugger->del_sp(sp_id);
+    return result;
+}
+
+static void ipsec_ucc_show_sp(const ipsec_sp& sp, std::string& msg)
+{
+    char ip_src[INET_ADDRSTRLEN], ip_dst[INET_ADDRSTRLEN];
+    struct sockaddr_in add;
+    /*set human readable IP number into str*/
+    add.sin_addr.s_addr = sp.m_id.m_selector.m_src_addr.m_ipv4;
+    inet_ntop(AF_INET, &(add.sin_addr), ip_src, INET_ADDRSTRLEN);
+    add.sin_addr.s_addr = sp.m_id.m_selector.m_dst_addr.m_ipv4;
+    inet_ntop(AF_INET, &(add.sin_addr), ip_dst, INET_ADDRSTRLEN);
+
+    msg.append("\n\n");
+    msg.append("Index           : " + std::to_string(sp.m_index) + "\n");
+    msg.append("Priority        : " + std::to_string(sp.m_priority) + "\n");
+    msg.append("IP selector src : ");
+    msg.append(ip_src);
+    msg.append("\n");
+    msg.append("IP selector dst : ");
+    msg.append(ip_dst);
+    msg.append("\n");
+    msg.append("Mask src        : " + std::to_string(
+                (uint32_t)sp.m_id.m_selector.m_src_mask) + "\n");
+    msg.append("Mask dst        : " + std::to_string(
+                (uint32_t)sp.m_id.m_selector.m_dst_mask) + "\n");
+    msg.append("\n\n");
+}
+
+static bool ipsec_ucc_template_sp_subcmd(int argc, const char **argv,
+        int& c_index, ipsec_tmpl& tmpl)
+{
+    const std::string tmpl_params[] =
+    {
+        "ip",
+        "proto",
+        "mode",
+        "id"
+    };
+
+    enum param_index: uint32_t
+    {
+        IP,
+        PROTO,
+        MODE,
+        ID
+    };
+
+    /*copy for current global index parameter*/
+    int index = c_index + 1;
+
+    /*Index for key word in tmpl_params*/
+    int in_index = -1;
+
+    /*Min number of arguments allowed for tmpl subcommand*/
+    const int argc_allowed = 9;
+
+    bool found = false;
+
+    /*Number of keywords allowed for this command*/
+    const int k_allowed = 4;
+
+    /*String to save the next keyword*/
+    std::string next_str = "";
+    std::string in_word = "";
+
+    if (argc<(argc_allowed + c_index))
+    {
+        /*Input Error*/
+        return false;
+    }
+    while(index <= (c_index + argc_allowed))
+    {
+        /*Current word to parse*/
+        in_word.assign(argv[index]);
+
+        found = ipsecd_ucc_getIndex(tmpl_params, in_word, k_allowed,
+            in_index);
+
+        if (found && argc >= (index +2))
+        {
+            switch(in_index)
+            {
+                case IP:
+                    /*2 more args are required*/
+                    if(argc >= (c_index + 3))
+                    {
+                        /*For IPv4 only*/
+                        next_str.assign(argv[index + 1]);
+
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    tmpl.m_src_ip.m_ipv4)))
+                        {
+                            return false;
+                        }
+                        next_str.assign(argv[index + 2]);
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    tmpl.m_dst_ip.m_ipv4)))
+                        {
+                            return false;
+                        }
+                    }
+
+                    else
+                    {
+                        return false;
+                    }
+                    index = index + 3;
+                    break;
+                case PROTO:
+                    next_str.assign(argv[index + 1]);
+                    tmpl.m_protocol = std::stoi(next_str, nullptr, 0);
+                    index = index + 2;
+                    break;
+                case MODE:
+                    /*Assign value to mode*/
+                    next_str.assign(argv[index + 1]);
+                    if(!(ipsec_ucc_set_mode(next_str, tmpl.m_mode)))
+                    {
+                        return false;
+                    }
+                    index = index + 2;
+                    break;
+                case ID:
+                    next_str.assign(argv[index + 1]);
+                    tmpl.m_req_id = std::stoi(next_str, nullptr, 0);
+                    index = index + 2;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    c_index = index;
+    return true;
+}
+
+static void ipsec_ucc_show_sa(const ipsec_sa& sa, std::string& msg)
+{
+    char ip_src[INET_ADDRSTRLEN], ip_dst[INET_ADDRSTRLEN],
+         ip_src_sel[INET_ADDRSTRLEN], ip_dst_sel[INET_ADDRSTRLEN];
+    struct sockaddr_in add;
+    /*set human readable IP number into str*/
+    add.sin_addr.s_addr = sa.m_id.m_src_ip.m_ipv4;
+    inet_ntop(AF_INET, &(add.sin_addr), ip_src, INET_ADDRSTRLEN);
+    add.sin_addr.s_addr = sa.m_id.m_dst_ip.m_ipv4;
+    inet_ntop(AF_INET, &(add.sin_addr), ip_dst, INET_ADDRSTRLEN);
+
+    add.sin_addr.s_addr = sa.m_selector.m_src_addr.m_ipv4;
+    inet_ntop(AF_INET, &(add.sin_addr), ip_src_sel, INET_ADDRSTRLEN);
+
+    add.sin_addr.s_addr = sa.m_selector.m_dst_addr.m_ipv4;
+    inet_ntop(AF_INET, &(add.sin_addr), ip_dst_sel, INET_ADDRSTRLEN);
+    msg.append("\n\n");
+    msg.append("SPI             : " + std::to_string(sa.m_id.m_spi) + "\n");
+    msg.append("ID              : " + std::to_string(sa.m_req_id) + "\n");
+    msg.append("Mode            : ");
+    if (sa.m_mode==ipsec_mode::transport)
+    {
+        msg.append("Transport\n");
+    }
+    else
+    {
+        msg.append("Tunnel\n");
+    }
+    msg.append("Protocol        : " + std::to_string(
+                sa.m_id.m_protocol) + "\n");
+    msg.append("Flags           : " + std::to_string(sa.m_flags) + "\n");
+    msg.append("IP src          : ");
+    msg.append(ip_src);
+    msg.append("\n");
+    msg.append("IP dst          : ");
+    msg.append(ip_dst);
+    msg.append("\n");
+    msg.append("IP selector src : ");
+    msg.append(ip_src_sel);
+    msg.append("\n");
+    msg.append("IP selector dst : ");
+    msg.append(ip_dst_sel);
+    msg.append("\n");
+    msg.append("Mask src        : " + std::to_string(
+                (uint32_t)sa.m_selector.m_src_mask) + "\n");
+    msg.append("Mask dst        : " + std::to_string(
+                (uint32_t)sa.m_selector.m_dst_mask) + "\n");
+    if (sa.m_auth_set)
+    {
+        msg.append("Auth            : yes\n");
+    }
+    if (sa.m_crypt_set)
+    {
+        msg.append("Crypt           : yes\n");
+    }
+    msg.append("\n\n");
+}
+
 static void ipsec_ucc_connection_usage(std::string &msg)
 {
     msg.append(" \n\nUsage: ipsecd/connection create PARAM [VALUES]\n\n"
@@ -367,7 +1002,6 @@ static void ipsec_ucc_debug_usage(std::string &msg)
         "enable  : enable debugger Mode\n"
         "disable : disable debugger Mode\n\n");
 }
-
 
 static void ipsec_ucc_debug_print_conn__(const ipsec_ike_connection conn,
         std::string &msg)
@@ -512,7 +1146,7 @@ ipsec_ret ipsecd_ucc_create_connection(int argc, const char **argv,
                 case MODE:
                     /*Assign value to mode*/
                     next_str.assign(argv[c_index + 1]);
-                    if(!(ipsec_ucc_set_mode(next_str, conn)))
+                    if(!(ipsec_ucc_set_mode(next_str, conn.m_child_sa.m_mode)))
                     {
                         goto input_error;
                     }
@@ -669,7 +1303,6 @@ ipsec_ret ipsecd_ucc_create_connection(int argc, const char **argv,
                         }
                         else
                         {
-                            printf("Args %s %s\n",next_str.c_str(),in_word.c_str());
                             return result;
                         }
                     }
@@ -819,7 +1452,7 @@ ipsec_ret ipsecd_ucc_debug (int argc, const char **argv, std::string &message)
     /*Min number of arguments allowed for this command*/
     const int argc_allowed = 2;
 
-    /*Index for key word in conn_params*/
+    /*Index for key word in debug_params*/
     int in_index            = -1;
 
     bool found              = false;
@@ -858,4 +1491,520 @@ ipsec_ret ipsecd_ucc_debug (int argc, const char **argv, std::string &message)
         }
     }
     return ipsec_ret::ERR;
+}
+
+ipsec_ret ipsecd_ucc_sa(int argc, const char **argv, std::string &message)
+{
+    enum param_index: uint32_t
+    {
+        ADD = 0,
+        DELETE,
+        GET,
+        PROTOCOL,
+        SPI,
+        IP,
+        MODE,
+        ID,
+        FLAGS,
+        ADDR_RANGE,
+        MASK,
+        AUTH,
+        CRYPT
+    };
+    /**
+    * Key words for ovs-appctl "ipsecd/sa" command
+    */
+    const std::string sa_params[] = {
+        "add",
+        "delete",
+        "get",
+        "proto",
+        "spi",
+        "ip",
+        "mode",
+        "id",
+        "flags",
+        "addr_range",
+        "mask",
+        "auth",
+        "crypt"
+    };
+
+    /*Number of keywords allowed for this command*/
+    const int k_allowed     = 13;
+
+    /*Min number of arguments allowed for this command*/
+    const int argc_allowed = 2;
+
+    /*Min number of arguments required to create a new sa*/
+    const int argc_min_sa = 20;
+
+    /*Index for key word in sa_params*/
+    int in_index            = -1;
+
+    /*Current argument index in argv to parse*/
+    int c_index             = 1;
+
+    bool found              = false;
+    std::string in_word     = "";
+    std::string next_str    = "";
+
+    /*Local variable to append to message*/
+    ipsec_ret result = ipsec_ret::ERR;
+
+    /*Debug object*/
+    DebugMode *debugger = DebugMode::getInst();
+
+    /*Security Association object*/
+    ipsec_sa sa;
+
+    /*Security Association for delete subcommand*/
+    ipsec_sa_id id;
+
+    if (argc<argc_allowed)
+    {
+        goto input_error;
+    }
+
+    while(c_index<argc)
+    {
+        /*Current word to parse*/
+        in_word.assign(argv[c_index]);
+
+        found = ipsecd_ucc_getIndex(sa_params, in_word, k_allowed,
+            in_index);
+
+        if (found && argc >= (c_index +2))
+        {
+            switch(in_index)
+            {
+                case ADD:
+                    c_index = c_index + 1;
+                    break;
+                case DELETE:
+                    result = ipsec_ucc_delete_sa_subcmd(
+                            argc, argv, c_index, id, debugger);
+
+                    if(result != ipsec_ret::OK)
+                    {
+                        return result;
+                    }
+                    message.append("\n\nSA successfully deleted\n\n");
+                    return result;
+                    break;
+                case GET:
+                    if(argc == 3)
+                    {
+                        next_str.assign(argv[c_index + 1]);
+                        result = debugger->get_sa(
+                                std::stoi(next_str, nullptr, 0), sa);
+                        if(result != ipsec_ret::OK)
+                        {
+                            return result;
+                        }
+                        ipsec_ucc_show_sa(sa, message);
+                        return result;
+                    }
+                    else
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 1;
+                    break;
+                case PROTOCOL:
+                    next_str.assign(argv[c_index + 1]);
+                    sa.m_id.m_protocol = std::stoi(next_str, nullptr, 0);
+                    c_index = c_index + 2;
+                    break;
+                case SPI:
+                    next_str.assign(argv[c_index + 1]);
+                    sa.m_id.m_spi = std::stoi(next_str, nullptr, 0);
+                    c_index = c_index + 2;
+                    break;
+                case IP:
+                    /*2 more args are required*/
+                    if(argc >= (c_index + 3))
+                    {
+                        /*For IPv4 only*/
+                        next_str.assign(argv[c_index + 1]);
+
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sa.m_id.m_src_ip.m_ipv4)))
+                        {
+                            goto input_error;
+                        }
+                        next_str.assign(argv[c_index + 2]);
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sa.m_id.m_dst_ip.m_ipv4)))
+                        {
+                            goto input_error;
+                        }
+                    }
+
+                    else
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 3;
+                    break;
+                case MODE:
+                    /*Assign value to mode*/
+                    next_str.assign(argv[c_index + 1]);
+                    if(!(ipsec_ucc_set_mode(next_str, sa.m_mode)))
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 2;
+                    break;
+                case ID:
+                    next_str.assign(argv[c_index + 1]);
+                    sa.m_req_id = std::stoi(next_str, nullptr, 0);
+                    c_index = c_index + 2;
+                 break;
+                case FLAGS:
+                    next_str.assign(argv[c_index + 1]);
+                    sa.m_flags = std::stoi(next_str, nullptr, 0);
+                    c_index = c_index + 2;
+                    break;
+                case ADDR_RANGE:
+                    /*2 more args are required*/
+                    if(argc >= (c_index + 3))
+                    {
+                        /*For IPv4 only*/
+                        next_str.assign(argv[c_index + 1]);
+
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sa.m_selector.m_src_addr.m_ipv4)))
+                        {
+                            goto input_error;
+                        }
+                        next_str.assign(argv[c_index + 2]);
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sa.m_selector.m_dst_addr.m_ipv4)))
+                        {
+                            goto input_error;
+                        }
+                    }
+
+                    else
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 3;
+                    break;
+                case MASK:
+                    /*2 more args are required*/
+                    if(argc >= (c_index + 3))
+                    {
+                        next_str.assign(argv[c_index + 1]);
+                        if (std::stoi(next_str, nullptr, 0) > 255)
+                        {
+                            goto input_error;
+                        }
+                        sa.m_selector.m_src_mask = std::stoi(
+                                next_str, nullptr, 0);
+                        next_str.assign(argv[c_index + 2]);
+                        if (std::stoi(next_str, nullptr, 0) > 255)
+                        {
+                            goto input_error;
+                        }
+                        sa.m_selector.m_dst_mask = std::stoi(
+                                next_str, nullptr, 0);
+                    }
+                    else
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 3;
+                    break;
+                case AUTH:
+                    /*2 more args are required*/
+                    if(argc >= (c_index + 3))
+                    {
+                        sa.m_auth_set = true;
+                        sa.m_auth.m_key.assign(argv[c_index + 2]);
+                        sa.m_auth.m_name.assign(argv[c_index + 1]);
+
+                    }
+                    else
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 3;
+                    break;
+                case CRYPT:
+                    /*2 more args are required*/
+                    if(argc >= (c_index + 3))
+                    {
+                        sa.m_crypt_set = true;
+                        sa.m_crypt.m_key.assign(argv[c_index + 2]);
+                        sa.m_crypt.m_name.assign(argv[c_index + 1]);
+
+                    }
+                    else
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 3;
+                    break;
+                default:
+                    goto input_error;
+            }
+        }
+        else
+        {
+            /*Wrong key word*/
+            return ipsec_ret::ERR;
+        }
+    }
+
+    in_word.assign("add");
+    if(in_word.compare(argv[1])==0 && argc>=argc_min_sa)
+    {
+        /*TODO: remove default values*/
+        sa.m_id.m_addr_family = AF_INET;
+        /*Debug purpose*/
+        if (debugger->isEnable())
+        {
+            ipsec_ucc_show_sa(sa, message);
+        }
+        result = debugger->add_sa(sa);
+        if (result == ipsec_ret::OK)
+        {
+            message.append("\n\nSA successfully created\n\n");
+        }
+        return result;
+    }
+
+    input_error:
+        return ipsec_ret::ERR;
+}
+
+ipsec_ret ipsecd_ucc_sp(int argc, const char **argv, std::string &message)
+{
+    enum param_index: uint32_t
+    {
+        ADD = 0,
+        ACT,
+        DIRECTION,
+        INDEX,
+        PRI,
+        IP,
+        MASK,
+        TMPL,
+        GET,
+        DELETE
+    };
+    /**
+    * Key words for ovs-appctl "ipsecd/sp" command
+    */
+    const std::string sp_params[] =
+    {
+        "add",
+        "act",
+        "direction",
+        "index",
+        "pri",
+        "ip",
+        "mask",
+        "tmpl",
+        "get",
+        "delete"
+    };
+
+    /*Number of keywords allowed for this command*/
+    const int k_allowed     = 10;
+
+    /*Min number of arguments allowed for this command*/
+    const int argc_allowed = 2;
+
+    /*Min number of arguments required to add a new SP*/
+    const int argc_min_sp = 25;
+
+    /*Index for key word in sp_params*/
+    int in_index            = -1;
+
+    /*Current argument index in argv to parse*/
+    int c_index             = 1;
+
+    bool found              = false;
+    std::string in_word     = "";
+    std::string next_str    = "";
+
+    /*Local variable to append to message*/
+    ipsec_ret result = ipsec_ret::ERR;
+
+    /*Debug object*/
+    DebugMode *debugger = DebugMode::getInst();
+
+    /*New sp object*/
+    ipsec_sp sp;
+
+    /*template object for tmpl subcommand*/
+    ipsec_tmpl tmpl;
+
+    /*ipsec_sp_id object to get a SP created before*/
+    ipsec_sp_id sp_id;
+
+    if (argc<argc_allowed)
+    {
+        goto input_error;
+    }
+
+    while(c_index<argc)
+    {
+        /*Current word to parse*/
+        in_word.assign(argv[c_index]);
+
+        found = ipsecd_ucc_getIndex(sp_params, in_word, k_allowed,
+            in_index);
+
+        if (found && argc >= (c_index +2))
+        {
+            switch(in_index)
+            {
+                case ADD:
+                    c_index = c_index + 1;
+                    break;
+                case ACT:
+                    next_str.assign(argv[c_index + 1]);
+                    if(!ipsec_ucc_set_action(next_str, sp.m_action))
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 2;
+                    break;
+                case DIRECTION:
+                    next_str.assign(argv[c_index + 1]);
+                    if(!ipsec_ucc_str_to_ipsec_direction(next_str,
+                                sp.m_id.m_dir))
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 2;
+                    break;
+                case INDEX:
+                    next_str.assign(argv[c_index + 1]);
+                    sp.m_index = std::stoi(next_str, nullptr, 0);
+                    c_index = c_index + 2;
+                    break;
+                case PRI:
+                    next_str.assign(argv[c_index + 1]);
+                    sp.m_priority = std::stoi(next_str, nullptr, 0);
+                    c_index = c_index + 2;
+                    break;
+                case IP:
+                    /*2 more args are required*/
+                    if(argc >= (c_index + 3))
+                    {
+                        /*For IPv4 only*/
+                        next_str.assign(argv[c_index + 1]);
+
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sp.m_id.m_selector.m_src_addr.m_ipv4)))
+                        {
+                            goto input_error;
+                        }
+                        next_str.assign(argv[c_index + 2]);
+                        if (!(ipsec_ucc_str_to_ipv4(next_str,
+                                    sp.m_id.m_selector.m_dst_addr.m_ipv4)))
+                        {
+                            goto input_error;
+                        }
+                    }
+
+                    else
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 3;
+                    break;
+                case MASK:
+                    /*2 more args are required*/
+                    if(argc >= (c_index + 3))
+                    {
+                        next_str.assign(argv[c_index + 1]);
+                        if (std::stoi(next_str, nullptr, 0) > 255)
+                        {
+                            goto input_error;
+                        }
+                        sp.m_id.m_selector.m_src_mask = std::stoi(
+                                next_str, nullptr, 0);
+                        next_str.assign(argv[c_index + 2]);
+                        if (std::stoi(next_str, nullptr, 0) > 255)
+                        {
+                            goto input_error;
+                        }
+                        sp.m_id.m_selector.m_dst_mask = std::stoi(
+                                next_str, nullptr, 0);
+                    }
+                    else
+                    {
+                        goto input_error;
+                    }
+                    c_index = c_index + 3;
+                    break;
+                case TMPL:
+                    if (!ipsec_ucc_template_sp_subcmd(
+                                argc, argv, c_index, tmpl))
+                    {
+                        goto input_error;
+                    }
+                    /*TODO: remove default values*/
+                    tmpl.m_addr_family = AF_INET;
+                    sp.m_template_lists.push_back(tmpl);
+                    break;
+
+                case GET:
+                    result = ipsec_ucc_get_sp_subcmd(argc, argv, c_index,
+                                sp, sp_id, debugger);
+                    if(result != ipsec_ret::OK)
+                    {
+                        return result;
+                    }
+                    ipsec_ucc_show_sp(sp, message);
+                    return result;
+                    break;
+                case DELETE:
+                    result = ipsec_ucc_delete_sp_subcmd(argc, argv, c_index,
+                            sp_id, debugger);
+                    if(result !=ipsec_ret::OK)
+                    {
+                        return result;
+                    }
+                    message.append("\n\nSP successfully deleted\n\n");
+                    return result;
+                    break;
+
+                default:
+                    goto input_error;
+            }
+        }
+        else
+        {
+            /*Wrong key word*/
+            return ipsec_ret::ERR;
+        }
+    }
+
+    in_word.assign("add");
+    if(in_word.compare(argv[1])==0 && argc>=argc_min_sp)
+    {
+        /*Debug purpose*/
+        if (debugger->isEnable())
+        {
+            ipsec_ucc_show_sp(sp, message);
+        }
+        //TODO: remove default values
+        sp.m_id.m_selector.m_addr_family = AF_INET;
+        result = debugger->add_sp(sp);
+        if (result == ipsec_ret::OK)
+        {
+            message.append("\n\nSP successfully created\n\n");
+        }
+        return result;
+    }
+
+    input_error:
+        return ipsec_ret::ERR;
 }

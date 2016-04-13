@@ -29,6 +29,7 @@
 #include "ops-ipsecd.h"
 #include "IKEViciAPI.h"
 #include "UnixctlCommandsUtils.h"
+#include "IPsecNetlinkAPI.h"
 
 /**
 * Utilities for debugger mode
@@ -41,18 +42,21 @@ class DebugMode
         *
         * @param ikeviciApi Reference to the main IKEViciAPI object
         *
+        * @param ipsecNetlink IPsecNetlinkAPI object
+        *
         * @param argc Number of arguments taken from the command line
         *
         * @param argv Arguments taken from the command line
         *
         * @return DebugMode instance
         */
-        static DebugMode *createInst(IKEViciAPI& ikeviciApi, int argc,
-                char **argv)
+        static DebugMode *createInst(IKEViciAPI& ikeviciApi,
+                IPsecNetlinkAPI& ipsecNetlink, int argc, char **argv)
         {
             if (m_debugger == NULL)
             {
-                m_debugger = new DebugMode(ikeviciApi, argc, argv);
+                m_debugger = new DebugMode(ikeviciApi, ipsecNetlink,
+                        argc, argv);
             }
             return m_debugger;
         }
@@ -131,6 +135,37 @@ class DebugMode
         ipsec_ret load_credential(const ipsec_credential& cred);
 
         /**
+         * Add a new SA
+         */
+        ipsec_ret add_sa(const ipsec_sa& sa);
+
+
+        /**
+         * Get a SA created before
+         */
+        ipsec_ret get_sa(uint32_t spi, ipsec_sa& sa);
+
+        /**
+         * Delete a SA
+         */
+        ipsec_ret del_sa(const ipsec_sa_id& id);
+
+        /**
+         * Add a new SP
+         */
+        ipsec_ret add_sp(const ipsec_sp& sp);
+
+        /**
+         * Get a SP created before
+         */
+        ipsec_ret get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp);
+
+        /**
+         * Delete a SP
+         */
+        ipsec_ret del_sp(const ipsec_sp_id& sp_id);
+
+        /**
         * Get the current state for UCC
         */
          bool uccIsRunning();
@@ -172,6 +207,11 @@ class DebugMode
         IKEViciAPI& m_ikeviciApi;
 
         /**
+         * Reference to IPsecNetlinkAPI object
+         */
+        IPsecNetlinkAPI& m_ipsecNetlink;
+
+        /**
         * Removed Copy Constructor
         */
         DebugMode(const DebugMode& orig) = delete;
@@ -190,7 +230,8 @@ class DebugMode
         *
         * @param argv Arguments taken from the command line
         */
-        DebugMode(IKEViciAPI& ikeviciApi, int argc, char **argv);
+        DebugMode(IKEViciAPI& ikeviciApi, IPsecNetlinkAPI& ipsecNetlink,
+                int argc, char **argv);
 };
 
 #endif /*DEBUG_MODE_H*/

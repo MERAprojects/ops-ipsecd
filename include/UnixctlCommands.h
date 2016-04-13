@@ -38,4 +38,14 @@ ipsec_ret ipsecd_ucc_help(int argc, const char **argv, std::string &message);
 */
 ipsec_ret ipsecd_ucc_debug (int argc, const char **argv, std::string &message);
 
+/**
+* Add, delete and get a SA
+*/
+ipsec_ret ipsecd_ucc_sa(int argc, const char **argv, std::string &message);
+
+/**
+* Add, delete and get a SP
+*/
+ipsec_ret ipsecd_ucc_sp(int argc, const char **argv, std::string &message);
+
 #endif /*__UNIXCTL_COMMANDS__*/

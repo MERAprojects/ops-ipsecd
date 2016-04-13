@@ -126,6 +126,54 @@ void UnixctlCommandsUtils::ipsecd_unixctl_exit(struct unixctl_conn *conn,
     unixctl_command_reply(conn, message.c_str());
 }
 
+void UnixctlCommandsUtils::ipsecd_unixctl_sa(struct unixctl_conn *conn,
+        int argc OVS_UNUSED, const char *argv[] OVS_UNUSED,
+        void *auxListener = nullptr)
+{
+    /**
+    * Message to talk with the unixctl.ctl server
+    */
+    std::string message = "";
+    ipsec_ret result = ipsec_ret::OK;
+
+    result = ipsecd_ucc_sa(argc, argv, message);
+    if (result == ipsec_ret::OK)
+    {
+        unixctl_command_reply(conn, message.c_str());
+    }
+    else
+    {
+        message.assign("Transaction error, " \
+            "please check your input arguments and try again, " \
+            "Error " + std::to_string(static_cast<int>(result)) +  " \n");
+        unixctl_command_reply_error(conn, message.c_str());
+    }
+}
+
+void UnixctlCommandsUtils::ipsecd_unixctl_sp(struct unixctl_conn *conn,
+        int argc OVS_UNUSED, const char *argv[] OVS_UNUSED,
+        void *auxListener = nullptr)
+{
+    /**
+    * Message to talk with the unixctl.ctl server
+    */
+    std::string message = "";
+    ipsec_ret result = ipsec_ret::OK;
+
+    result = ipsecd_ucc_sp(argc, argv, message);
+    if (result == ipsec_ret::OK)
+    {
+        unixctl_command_reply(conn, message.c_str());
+    }
+    else
+    {
+        message.assign("Transaction error, " \
+            "please check your input arguments and try again, " \
+            "Error " + std::to_string(static_cast<int>(result)) +  " \n");
+        unixctl_command_reply_error(conn, message.c_str());
+    }
+}
+
 void UnixctlCommandsUtils::ipsecd_unixctl_connection(struct unixctl_conn *conn,
         int argc OVS_UNUSED, const char *argv[] OVS_UNUSED,
         void *auxListener = nullptr)
@@ -269,4 +317,18 @@ void UnixctlCommandsUtils::register_commands()
     unixctl_command_register("ipsecd/help",
             "Show usage for all ops-ipsecd commands", 0, 0,
             UnixctlCommandsUtils::ipsecd_unixctl_help, nullptr);
+    /**
+    * Register the ovs-appctl 'ipsecd/sa' command
+    * for ops-ipsecd daemon
+    */
+    unixctl_command_register("ipsecd/sa",
+            "Add, get and delete a SA", 2, 26,
+            UnixctlCommandsUtils::ipsecd_unixctl_sa, nullptr);
+    /**
+    * Register the ovs-appctl 'ipsecd/sp' command
+    * for ops-ipsecd daemon
+    */
+    unixctl_command_register("ipsecd/sp",
+            "Add, get and delete a SP", 2, 75,
+            UnixctlCommandsUtils::ipsecd_unixctl_sp, nullptr);
 }

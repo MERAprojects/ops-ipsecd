@@ -30,8 +30,9 @@
 */
 DebugMode *DebugMode::m_debugger = nullptr;
 
-DebugMode::DebugMode(IKEViciAPI& ikeviciApi, int argc, char **argv)
-        : m_ikeviciApi(ikeviciApi)
+DebugMode::DebugMode(IKEViciAPI& ikeviciApi, IPsecNetlinkAPI& ipsecNetlink,
+        int argc, char **argv)
+        : m_ikeviciApi(ikeviciApi), m_ipsecNetlink(ipsecNetlink)
 {
     argc_d = argc;
     argv_d = &argv[0];
@@ -99,4 +100,34 @@ ipsec_ret DebugMode::get_connection_stats(const std::string& conn_name,
 ipsec_ret DebugMode::load_credential(const ipsec_credential& cred)
 {
     return m_ikeviciApi.load_credential(cred);
+}
+
+ipsec_ret DebugMode::add_sa(const ipsec_sa& sa)
+{
+    return m_ipsecNetlink.add_sa(sa);
+}
+
+ipsec_ret  DebugMode::get_sa(uint32_t spi, ipsec_sa& sa)
+{
+    return m_ipsecNetlink.get_sa(spi, sa);
+}
+
+ipsec_ret  DebugMode::del_sa(const ipsec_sa_id& id)
+{
+    return m_ipsecNetlink.del_sa(id);
+}
+
+ipsec_ret  DebugMode::add_sp(const ipsec_sp& sp)
+{
+    return m_ipsecNetlink.add_sp(sp);
+}
+
+ipsec_ret  DebugMode::get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp)
+{
+    return m_ipsecNetlink.get_sp(sp_id, sp);
+}
+
+ipsec_ret  DebugMode::del_sp(const ipsec_sp_id& sp_id)
+{
+    return m_ipsecNetlink.del_sp(sp_id);
 }
