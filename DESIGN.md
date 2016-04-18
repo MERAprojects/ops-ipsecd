@@ -81,123 +81,80 @@ that ops-ipsec writes and takes appropriate action.
 ```
 
 ## OVSDB-Schema
-Table: IPSEC
-    ipsecd reads the following columns:
-        stats_refresh_seconds
-    ipsecd updates the following columns:
-        stats_publish_all
-    ipsecd access the following tables:
-        ipsec_ike_connections
-        ipsec_manual_sps
-        ipsec_manual_sas
-Table: Ipsec_Ike_Connection
-   ipsecd reads the following columns:
-      policy_name
-      policy_enable: true | false
-      ip_family: IPv4 | IPv6
-      ipsec_protocol: AH | ESP
-      ipsec_mode: tunnel | transport
-      integrity: sha1-hmac | sha256-hmac | sha512-hmac   #integ src and content
-      encryption: aes128 | aes256
-      ike_version: IKEv1/v2 | IKEv1 | IKEv2
-      ike_integrity: sha1-hmac | sha256-hmac | sha512-hma
-      ike_encryption: aes128 | aes256
-      ike_group: diffie2 | diffie14
-      ike_local_addr: localIP | hostname     #local addr of GRE tunnel
-      ike_remote_addr: remoteIP | hostname   #remote addr of GRE tunnel
-      peer_auth_by: psk | cert
-      local_cert_id
-      local_id
-      remote_id
-   ipsecd write the following columns:
-      ipsec_ike_conn_statuses
-
-IKE statuses: key ID's are documented in xml:
-      policy_name
-      request_id (index)
-      ike_status
-      ike_spi_inbound
-      ike_spi_outbound
-      ike_proposals
-      ike_reauth_eta
-      sa_status
-      sa_mode
-      sa_spi_inbound
-      sa_spi_outbound
-      sa_proposal
-      sa_rekey_eta
-
-Table: ipsec_manual_sp
-   ipsecd reads the following columns:
+ops-ipsecd reads/monitors the following OVSDB Tables/Columns:
+Table: System
+      ssl
+      ipsec_ike_policies
+      ipsec_manual_sps
+      ipsec_manual_sas
+      stats_refresh_seconds
+      stats_publish_all
+Table: IPsec_IKE_Policy
+      name
+      protocol: AH | ESP
+      mode: tunnel | transport
+      integrity: SHA1HMAC | SHA256HMAC | SHA512HMAC
+      encryption: AES128 | AES256
+      ike_integrity: SHA1HMAC | SHA256HMAC | SHA512HMAC
+      ike_encryption: AES128 | AES256
+      ike_group: DIFFIE2 | DIFFIE14
+      peer_auth_by: PSK | cert
+      psk
+      psk_selectors
+      keep_alive_seconds
+Table: Interface
+   ipsec_ike_policy: as a reference to IPsec_IKE_Policy
+   status: ops-ipsecd updates the interface status of the type
+      string-string kv-map as documented on the xml file.
+      ipsec_ike_established_time
+      ipsec_ike_initiator_spi
+      ipsec_ike_responder_spi
+      ipsec_ike_reauth_time
+      ipsec_ike_conn_state
+      ipsec_sa_rekey_time
+      ipsec_sa_expiration_time
+      ipsec_bytes_in
+      ipsec_bytes_out
+      ipsec_packets_in
+      ipsec_packets_out
+Table: IPsec_Manual_SP
       priority
-      direction
-      addr_family: IPv4 | IPv6
-      src_addr (index with src/dest_addr, src/dest mask and direction)
-      src_addr_mask
-      dest_addr
-      dest_addr_mask
+      direction: fwd | in | out
+      action: none | discard | ipsec
+      ip_family: ipv4 | ipv6
+      src_prefix (prefix is IP address with a /XXX netmask)
+      dest_prefix
       tmpl_request_id
-      tmpl_protocol
-      tmpl_mode
-      tmpl_addr_family
-      tmpl_src_addr
-      tmpl_dest_addr
-   ipsecd write the following columns:
-      ipsec_manual_sp_statuses
-
-Manual SP statuses: key ID's are documented in xml:
-      src_ip
-      src_ip_mask
-      dest_ip
-      dest_ip_mask
-      direction
-      action
-      priority
-      tmpl_protocol
-      tmpl_addr_family
+      tmpl_protocol: AH | ESP
+      tmpl_mode: tunnel | transport
+      tmpl_ip_family: ipv4 | ipv6
       tmpl_src_ip
       tmpl_dest_ip
-      tmpl_sp_id
-      tmpl_mode
-      sp_data_bytes
-      sp_data_packets
-      sp_conn_added
-      sp_conn_used
-
-Table: ipsec_manual_sa
-   ipsecd reads the following columns:
-      spi (index)
-      addr_family: IPv4 | IPv6
-      src_addr
-      dest_addr
+   ops-ipsecd writes to the following columns:
+      status: string-string kv-map as documented on the xml file.
+         sp_conn_added
+         sp_conn_used
+      statistics: string-string kv map as documented on the xml file.
+         sp_bytes
+         sp_packets
+Table: IPsec_Manual_SA
+      SPI (index)
       request_id
-      protocol
-      mode
-      auth_type
-      auth_key_id
-      encr_type
-      encr_key_id
-      priority
-      selector_addr_family
-      selector_src_addr
-      selector_src_addr_mask
-      selector_dest_addr
-      selector_dest_addr_mask
-   ipsecd write the following columns:
-      ipsec_manual_sa_statuses
-
-Manual SA statuses: key ID's are documented in xml:
+      addr_family: IPv4 | IPv6
       src_ip
       dest_ip
-      spi
-      protocol
-      mode
-      selector_addr_family
-      selector_src_addr
-      selector_src_addr_mask
-      selector_dest_addr
-      selector_dest_addr_mask
-      sa_data_bytes
-      sa_data_packets
-      sa_conn_added
-      sa_conn_used
+      protocol: AH | ESP
+      mode: tunnel | transport
+      authentication: SHA1HMAC | SHA256HMAC | SHA512HMAC
+      auth_key
+      encryption: AES128 | AES256
+      encr_key
+      selector_src_prefix (prefix is IP address with a /XXX netmask)
+      selector_dest_prefix
+   ops-ipsecd writes to the following columns:
+      status: string-string kv-map as documented on the xml file.
+          sa_conn_added
+          sa_conn_used
+       statistics: string-string kv map as documented on the xml file.
+          sa_bytes
+          sa_packets
