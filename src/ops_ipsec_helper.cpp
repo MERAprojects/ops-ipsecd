@@ -177,8 +177,6 @@ namespace ipsecd_helper
             }
 
             result += group_to_str(group);
-
-            append = true;
         }
 
         return result;

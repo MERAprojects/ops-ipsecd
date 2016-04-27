@@ -134,13 +134,18 @@ ipsec_ret IPsecNetlinkAPI::add_sa(const ipsec_sa& sa)
     xfrm_sa->lft.soft_use_expires_seconds   = 0;
 
     ///////////////////////////////////////
-    //Set XFRM SA Lifetime Defaults
+    //Set XFRM SA crypto
     if(sa.m_crypt_set)
     {
         uint32_t xfrmAlgoKeySize = (sa.m_crypt.m_key.size() / 2);
         uint32_t xfrmAlgoSize = sizeof(struct xfrm_algo) + xfrmAlgoKeySize;
 
         struct xfrm_algo* xfrm_crypt = (struct xfrm_algo*)malloc(xfrmAlgoSize);
+
+        if(xfrm_crypt == nullptr)
+        {
+            return ipsec_ret::ALLOC_FAILED;
+        }
 
         memset(xfrm_crypt, 0, xfrmAlgoSize);
 
@@ -175,6 +180,11 @@ ipsec_ret IPsecNetlinkAPI::add_sa(const ipsec_sa& sa)
         uint32_t xfrmAlgoSize = sizeof(struct xfrm_algo) + xfrmAlgoKeySize;
 
         struct xfrm_algo* xfrm_auth = (struct xfrm_algo*)malloc(xfrmAlgoSize);
+
+        if(xfrm_auth == nullptr)
+        {
+            return ipsec_ret::ALLOC_FAILED;
+        }
 
         memset(xfrm_auth, 0, xfrmAlgoSize);
 
@@ -630,6 +640,10 @@ ipsec_ret IPsecNetlinkAPI::add_sp(const ipsec_sp& sp)
 
         struct xfrm_user_tmpl* tmplArr = (struct xfrm_user_tmpl*)malloc(size);
 
+        if(tmplArr == nullptr)
+        {
+            return ipsec_ret::ALLOC_FAILED;
+        }
         memset(tmplArr, 0, size);
 
         uint32_t i = 0;
