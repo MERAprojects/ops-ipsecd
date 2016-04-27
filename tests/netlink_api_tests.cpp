@@ -95,6 +95,11 @@ class IPsecNetlinkAPI_EnO : public IPsecNetlinkAPI
         {
             return create_socket(nl_socket, groups);
         }
+
+        int call_parse_nested_attr(const struct nlattr* nl_attr, void* data)
+        {
+            return parse_nested_attr(nl_attr, data);
+        }
 };
 
 class IPsecNetlinkAPITestSuite : public Test
@@ -1171,4 +1176,85 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSAErrorInMsg)
     EXPECT_EQ(xfrm_said.proto, said.m_protocol);
     EXPECT_EQ(xfrm_said.spi, htonl(said.m_spi));
     EXPECT_EQ(memcmp(&xfrm_said.daddr, &said.m_dst_ip, IP_ADDRESS_LENGTH), 0);
+}
+
+/**
+ * Objective: Verify that parse nested attributes will work as intended
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseNestedAttr)
+{
+    IPsecNetlinkAPI::CB_Data cbdata;
+    struct nlattr nl_attr;
+    struct nlattr* nl_attrs[10] = { 0 };
+    uint32_t idx = 1;
+
+    ///////////////////////////////////////
+
+    cbdata.m_netlink_api = &m_netlink_api;
+    cbdata.user_data = nl_attrs;
+
+    nl_attr.nla_len = 111;
+    nl_attr.nla_type = 222;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, attr_get_type(Eq(&nl_attr)))
+            .WillOnce(Return(idx));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_type_valid(Eq(&nl_attr),
+                                   Eq(XFRMA_MAX)))
+            .WillOnce(Return(1));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.call_parse_nested_attr(&nl_attr, &cbdata), MNL_CB_OK);
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(nl_attrs[idx]->nla_len, nl_attr.nla_len);
+    EXPECT_EQ(nl_attrs[idx]->nla_type, nl_attr.nla_type);
+}
+
+/**
+ * Objective: Verify that parse nested attributes will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseNestedAttrDataNull)
+{
+    EXPECT_EQ(m_netlink_api.call_parse_nested_attr(nullptr, nullptr), MNL_CB_ERROR);
+}
+
+/**
+ * Objective: Verify that parse nested attributes will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseNestedAttrNotValid)
+{
+    IPsecNetlinkAPI::CB_Data cbdata;
+    struct nlattr nl_attr;
+    struct nlattr* nl_attrs[10] = { 0 };
+    uint32_t idx = 1;
+
+    ///////////////////////////////////////
+
+    cbdata.m_netlink_api = &m_netlink_api;
+    cbdata.user_data = nl_attrs;
+
+    nl_attr.nla_len = 111;
+    nl_attr.nla_type = 222;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, attr_get_type(Eq(&nl_attr)))
+            .WillOnce(Return(idx));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_type_valid(Eq(&nl_attr),
+                                   Eq(XFRMA_MAX)))
+            .WillOnce(Return(-1));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.call_parse_nested_attr(&nl_attr, &cbdata), MNL_CB_OK);
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(nl_attrs[idx], nullptr);
 }
