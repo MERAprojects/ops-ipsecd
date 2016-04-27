@@ -503,3 +503,129 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSASocketReceiveToFailed)
 
     EXPECT_EQ(m_netlink_api.add_sa(sa), ipsec_ret::SOCKET_RECV_FAILED);
 }
+
+/**
+ * Objective: Verify that add sa will call the correct methods
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSAErrorInMsg)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_info xfrm_sa;
+    struct xfrm_usersa_info* p_xfrm_sa = &xfrm_sa;
+    struct nlmsgerr err;
+    struct nlmsgerr* p_err = &err;
+    uint16_t flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_CREATE | NLM_F_EXCL;
+    ipsec_sa sa;
+
+    ///////////////////////////////////////
+
+    err.error = -1;
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sa(sa);
+
+    uint32_t xfrmCryptAlgoKeySize = (sa.m_crypt.m_key.size() / 2);
+    uint32_t xfrmCryptAlgoSize = sizeof(struct xfrm_algo) + xfrmCryptAlgoKeySize;
+
+    uint32_t xfrmAuthAlgoKeySize = (sa.m_auth.m_key.size() / 2);
+    uint32_t xfrmAuthAlgoSize = sizeof(struct xfrm_algo) + xfrmAuthAlgoKeySize;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_info))))
+            .WillOnce(Return(p_xfrm_sa));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_ALG_CRYPT), xfrmCryptAlgoSize,
+                                   NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_ALG_AUTH), xfrmAuthAlgoSize,
+                                   NotNull()));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(0));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+            .WillOnce(Return(0));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(p_nlh)))
+            .WillOnce(Return(p_err));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sa(sa), ipsec_ret::ADD_FAILED);
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(-err.error, errno);
+
+    set_expect_ipsec_sa(nlh, xfrm_sa, sa, flags);
+}
+
+/**
+ * Objective: Verify that add sa will call the correct methods
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSA)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_id xfrm_said;
+    struct xfrm_usersa_id* p_xfrm_said = &xfrm_said;
+    uint16_t flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_DUMP;
+    uint32_t pid = 200;
+    ssize_t socketRet = 100;
+    FakeCalls fakeCalls;
+    ipsec_sa sa;
+
+    ///////////////////////////////////////
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+
+    ///////////////////////////////////////
+
+    ON_CALL(m_mnl_wrapper, cb_run(_, _, _, _, _, _))
+            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::cb_run));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_id))))
+            .WillOnce(Return(p_xfrm_said));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_get_portid(NotNull()))
+            .WillOnce(Return(pid));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+            .WillOnce(Return(socketRet));
+
+    EXPECT_CALL(m_mnl_wrapper, cb_run(NotNull(), Eq(socketRet), _, Eq(pid),
+                                      NotNull(), NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.get_sa(0x100, sa), ipsec_ret::OK);
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(nlh.nlmsg_type, XFRM_MSG_GETSA);
+    EXPECT_EQ(nlh.nlmsg_flags, flags);
+    EXPECT_NE(nlh.nlmsg_seq, 0);
+}
