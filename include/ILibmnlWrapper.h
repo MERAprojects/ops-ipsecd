@@ -155,7 +155,7 @@ class ILibmnlWrapper
          *
          * @param nl Netlink socket obtained via socket_open().
          * @param buf Buffer that you want to use to store the netlink message.
-         * @param bufzie Size of the buffer passed to store the netlink message.
+         * @param bufsiz Size of the buffer passed to store the netlink message.
          *
          * @return On error -1 and errno is set, 0 on success.
          */
@@ -285,6 +285,7 @@ class ILibmnlWrapper
          *
          * @param buf Buffer that contains the netlink messages.
          * @param numbytes Number of bytes stored in the buffer.
+         * @param seq Packet Sequence.
          * @param portid Netlink PortID that we expect to receive.
          * @param cb_data Callback handler for data messages.
          * @param data Pointer to data that will be passed to the data callback handler

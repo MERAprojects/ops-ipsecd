@@ -88,7 +88,7 @@ class IIPsecAPI
          *
          * @param sp_id ID of the SP to search for
          *
-         * @param sa SP to load information into
+         * @param sp SP to load information into
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */

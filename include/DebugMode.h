@@ -39,13 +39,11 @@ class DebugMode
         /**
         * Create  a new DebugMode instance
         *
-        * @param argc_c Number of arguments taken from the command line
-        *
-        * @param argv_c Arguments taken from the command line
-        *
         * @param ikeviciApi Reference to the main IKEViciAPI object
         *
-        * @param pathp Path for the new unixctl server
+        * @param argc Number of arguments taken from the command line
+        *
+        * @param argv Arguments taken from the command line
         *
         * @return DebugMode instance
         */
@@ -186,7 +184,11 @@ class DebugMode
         /**
         * Constructor
         *
-        * @param ikeviciApi_d Reference to IKEViciAPI main object
+        * @param ikeviciApi Reference to IKEViciAPI main object
+        *
+        * @param argc Number of arguments taken from the command line
+        *
+        * @param argv Arguments taken from the command line
         */
         DebugMode(IKEViciAPI& ikeviciApi, int argc, char **argv);
 };

@@ -76,6 +76,9 @@ int main( int argc, const char* argv[] )
     MapFile mapFile(systemCalls);
     IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, mapFile);
 
+    //Set Signal
+    ipsecd_signal_set_mask();
+
     if (ikeViciApi.initialize() != ipsec_ret::OK)
     {
         exit(EXIT_FAILURE);
@@ -83,9 +86,6 @@ int main( int argc, const char* argv[] )
 
     DebugMode *debugger = DebugMode::createInst(ikeViciApi, argc,
             (char **) argv);
-
-    //Set Signal
-    ipsecd_signal_set_mask();
     while(g_IsRunning && debugger->uccIsRunning())
     {
         debugger->ucc_run();
@@ -93,6 +93,7 @@ int main( int argc, const char* argv[] )
         debugger->ucc_wait();
     }
     debugger->ucc_destroy();
+
     return EXIT_SUCCESS;
 }
 
