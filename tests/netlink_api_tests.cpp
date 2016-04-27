@@ -863,3 +863,312 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSANotFound)
     EXPECT_EQ(nlh.nlmsg_flags, flags);
     EXPECT_NE(nlh.nlmsg_seq, 0);
 }
+
+/**
+ * Objective: Verify that delete sa will call the correct methods
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSA)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_id xfrm_said;
+    struct xfrm_usersa_id* p_xfrm_said = &xfrm_said;
+    uint16_t flags = NLM_F_REQUEST | NLM_F_ACK;
+    struct nlmsgerr err;
+    struct nlmsgerr* p_err = &err;
+    ipsec_sa_id said;
+
+    ///////////////////////////////////////
+
+    said.m_addr_family = AF_INET;
+    said.m_dst_ip.m_ipv4 = inet_addr("10.100.1.1");
+    said.m_protocol = 50;
+    said.m_spi = 0x200;
+
+    err.error = 0;
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_id))))
+            .WillOnce(Return(p_xfrm_said));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+            .WillOnce(Return(1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(p_nlh)))
+            .WillOnce(Return(p_err));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.del_sa(said), ipsec_ret::OK);
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(nlh.nlmsg_type, XFRM_MSG_DELSA);
+    EXPECT_EQ(nlh.nlmsg_flags, flags);
+    EXPECT_NE(nlh.nlmsg_seq, 0);
+
+    EXPECT_EQ(xfrm_said.family, said.m_addr_family);
+    EXPECT_EQ(xfrm_said.proto, said.m_protocol);
+    EXPECT_EQ(xfrm_said.spi, htonl(said.m_spi));
+    EXPECT_EQ(memcmp(&xfrm_said.daddr, &said.m_dst_ip, IP_ADDRESS_LENGTH), 0);
+}
+
+/**
+ * Objective: Verify that delete sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSAPutHeaderFails)
+{
+    ipsec_sa_id said;
+
+    ///////////////////////////////////////
+
+    said.m_addr_family = AF_INET;
+    said.m_dst_ip.m_ipv4 = inet_addr("10.100.1.1");
+    said.m_protocol = 50;
+    said.m_spi = 0x200;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(nullptr));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.del_sa(said), ipsec_ret::ALLOC_FAILED);
+}
+
+/**
+ * Objective: Verify that delete sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSAPutExtraHeaderFails)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    ipsec_sa_id said;
+
+    ///////////////////////////////////////
+
+    said.m_addr_family = AF_INET;
+    said.m_dst_ip.m_ipv4 = inet_addr("10.100.1.1");
+    said.m_protocol = 50;
+    said.m_spi = 0x200;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_id))))
+            .WillOnce(Return(nullptr));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.del_sa(said), ipsec_ret::ALLOC_FAILED);
+}
+
+/**
+ * Objective: Verify that delete sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSASocketCreateFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_id xfrm_said;
+    struct xfrm_usersa_id* p_xfrm_said = &xfrm_said;
+    ipsec_sa_id said;
+
+    ///////////////////////////////////////
+
+    said.m_addr_family = AF_INET;
+    said.m_dst_ip.m_ipv4 = inet_addr("10.100.1.1");
+    said.m_protocol = 50;
+    said.m_spi = 0x200;
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_id))))
+            .WillOnce(Return(p_xfrm_said));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_open(Eq(NETLINK_XFRM)))
+            .WillOnce(Return(nullptr));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.del_sa(said), ipsec_ret::SOCKET_CREATE_FAILED);
+}
+
+/**
+ * Objective: Verify that delete sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSASocketSendFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_id xfrm_said;
+    struct xfrm_usersa_id* p_xfrm_said = &xfrm_said;
+    ipsec_sa_id said;
+
+    ///////////////////////////////////////
+
+    said.m_addr_family = AF_INET;
+    said.m_dst_ip.m_ipv4 = inet_addr("10.100.1.1");
+    said.m_protocol = 50;
+    said.m_spi = 0x200;
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_id))))
+            .WillOnce(Return(p_xfrm_said));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(-1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.del_sa(said), ipsec_ret::SOCKET_SEND_FAILED);
+}
+
+/**
+ * Objective: Verify that delete sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSASocketRevcFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_id xfrm_said;
+    struct xfrm_usersa_id* p_xfrm_said = &xfrm_said;
+    ipsec_sa_id said;
+
+    ///////////////////////////////////////
+
+    said.m_addr_family = AF_INET;
+    said.m_dst_ip.m_ipv4 = inet_addr("10.100.1.1");
+    said.m_protocol = 50;
+    said.m_spi = 0x200;
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_id))))
+            .WillOnce(Return(p_xfrm_said));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+            .WillOnce(Return(-1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.del_sa(said), ipsec_ret::SOCKET_RECV_FAILED);
+}
+
+/**
+ * Objective: Verify that delete sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSAErrorInMsg)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_id xfrm_said;
+    struct xfrm_usersa_id* p_xfrm_said = &xfrm_said;
+    uint16_t flags = NLM_F_REQUEST | NLM_F_ACK;
+    struct nlmsgerr err;
+    struct nlmsgerr* p_err = &err;
+    ipsec_sa_id said;
+
+    ///////////////////////////////////////
+
+    said.m_addr_family = AF_INET;
+    said.m_dst_ip.m_ipv4 = inet_addr("10.100.1.1");
+    said.m_protocol = 50;
+    said.m_spi = 0x200;
+
+    err.error = -1;
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_id))))
+            .WillOnce(Return(p_xfrm_said));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+            .WillOnce(Return(1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(p_nlh)))
+            .WillOnce(Return(p_err));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.del_sa(said), ipsec_ret::NOT_FOUND);
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(errno, -err.error);
+
+    EXPECT_EQ(nlh.nlmsg_type, XFRM_MSG_DELSA);
+    EXPECT_EQ(nlh.nlmsg_flags, flags);
+    EXPECT_NE(nlh.nlmsg_seq, 0);
+
+    EXPECT_EQ(xfrm_said.family, said.m_addr_family);
+    EXPECT_EQ(xfrm_said.proto, said.m_protocol);
+    EXPECT_EQ(xfrm_said.spi, htonl(said.m_spi));
+    EXPECT_EQ(memcmp(&xfrm_said.daddr, &said.m_dst_ip, IP_ADDRESS_LENGTH), 0);
+}

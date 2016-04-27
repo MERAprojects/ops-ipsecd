@@ -385,6 +385,8 @@ ipsec_ret IPsecNetlinkAPI::del_sa(const ipsec_sa_id& id)
     //Send Request
     if(m_mnl_wrapper.socket_sendto(nl_socket, nlh, nlh->nlmsg_len) <= 0)
     {
+        m_mnl_wrapper.socket_close(nl_socket);
+
         return ipsec_ret::SOCKET_SEND_FAILED;
     }
 
@@ -392,6 +394,8 @@ ipsec_ret IPsecNetlinkAPI::del_sa(const ipsec_sa_id& id)
     //Get Answer
     if (m_mnl_wrapper.socket_recvfrom(nl_socket, buf, sizeof(buf)) <= 0)
     {
+        m_mnl_wrapper.socket_close(nl_socket);
+
         return ipsec_ret::SOCKET_RECV_FAILED;
     }
 
