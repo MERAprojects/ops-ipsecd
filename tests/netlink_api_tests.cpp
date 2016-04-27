@@ -354,3 +354,152 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSAPutExtraHeaderFails)
 
     EXPECT_EQ(m_netlink_api.add_sa(sa), ipsec_ret::ALLOC_FAILED);
 }
+
+/**
+ * Objective: Verify that add sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSACreateSocketFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_info xfrm_sa;
+    struct xfrm_usersa_info* p_xfrm_sa = &xfrm_sa;
+    ipsec_sa sa;
+
+    ///////////////////////////////////////
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sa(sa);
+
+    uint32_t xfrmCryptAlgoKeySize = (sa.m_crypt.m_key.size() / 2);
+    uint32_t xfrmCryptAlgoSize = sizeof(struct xfrm_algo) + xfrmCryptAlgoKeySize;
+
+    uint32_t xfrmAuthAlgoKeySize = (sa.m_auth.m_key.size() / 2);
+    uint32_t xfrmAuthAlgoSize = sizeof(struct xfrm_algo) + xfrmAuthAlgoKeySize;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_info))))
+            .WillOnce(Return(p_xfrm_sa));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_ALG_CRYPT), xfrmCryptAlgoSize,
+                                   NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_ALG_AUTH), xfrmAuthAlgoSize,
+                                   NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_open(Eq(NETLINK_XFRM)))
+            .WillOnce(Return(nullptr));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sa(sa), ipsec_ret::SOCKET_CREATE_FAILED);
+}
+
+/**
+ * Objective: Verify that add sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSASocketSendToFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_info xfrm_sa;
+    struct xfrm_usersa_info* p_xfrm_sa = &xfrm_sa;
+    ipsec_sa sa;
+
+    ///////////////////////////////////////
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sa(sa);
+
+    uint32_t xfrmCryptAlgoKeySize = (sa.m_crypt.m_key.size() / 2);
+    uint32_t xfrmCryptAlgoSize = sizeof(struct xfrm_algo) + xfrmCryptAlgoKeySize;
+
+    uint32_t xfrmAuthAlgoKeySize = (sa.m_auth.m_key.size() / 2);
+    uint32_t xfrmAuthAlgoSize = sizeof(struct xfrm_algo) + xfrmAuthAlgoKeySize;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_info))))
+            .WillOnce(Return(p_xfrm_sa));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_ALG_CRYPT), xfrmCryptAlgoSize,
+                                   NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_ALG_AUTH), xfrmAuthAlgoSize,
+                                   NotNull()));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(-1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sa(sa), ipsec_ret::SOCKET_SEND_FAILED);
+}
+
+/**
+ * Objective: Verify that add sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSASocketReceiveToFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_usersa_info xfrm_sa;
+    struct xfrm_usersa_info* p_xfrm_sa = &xfrm_sa;
+    ipsec_sa sa;
+
+    ///////////////////////////////////////
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sa(sa);
+
+    uint32_t xfrmCryptAlgoKeySize = (sa.m_crypt.m_key.size() / 2);
+    uint32_t xfrmCryptAlgoSize = sizeof(struct xfrm_algo) + xfrmCryptAlgoKeySize;
+
+    uint32_t xfrmAuthAlgoKeySize = (sa.m_auth.m_key.size() / 2);
+    uint32_t xfrmAuthAlgoSize = sizeof(struct xfrm_algo) + xfrmAuthAlgoKeySize;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_usersa_info))))
+            .WillOnce(Return(p_xfrm_sa));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_ALG_CRYPT), xfrmCryptAlgoSize,
+                                   NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_ALG_AUTH), xfrmAuthAlgoSize,
+                                   NotNull()));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(0));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+            .WillOnce(Return(-1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sa(sa), ipsec_ret::SOCKET_RECV_FAILED);
+}
