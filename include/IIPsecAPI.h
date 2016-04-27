@@ -68,11 +68,11 @@ class IIPsecAPI
         /**
          * Deletes a SA from the IPsec Kernel Module
          *
-         * @param spi spi of the SA to remove
+         * @param id IPsec SA ID to remove
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
-        virtual ipsec_ret del_sa(uint32_t spi) = 0;
+        virtual ipsec_ret del_sa(const ipsec_sa_id& id) = 0;
 
         /**
          * Loads a new SP to the IPsec Kernel Module

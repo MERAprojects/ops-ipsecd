@@ -22,6 +22,8 @@
 *System Includes
 **********************************/
 #include <string>
+#include <linux/xfrm.h>
+
 /**********************************
 *Local Includes
 **********************************/
@@ -75,7 +77,7 @@ class IPsecNetlinkAPI : public IIPsecAPI
          *
          * @param nl_attrs Attributes the XFRM struct contains
          *
-         * @param sa SP struct to save data
+         * @param sp SP struct to save data
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
@@ -134,7 +136,7 @@ class IPsecNetlinkAPI : public IIPsecAPI
         /**
          * @copydoc IPsecAPI::del_sa
          */
-        ipsec_ret del_sa(uint32_t spi) override;
+        ipsec_ret del_sa(const ipsec_sa_id& id) override;
 
         /**
          * @copydoc IPsecAPI::add_sp

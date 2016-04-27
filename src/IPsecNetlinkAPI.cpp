@@ -22,7 +22,6 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <linux/xfrm.h>
 
 /**********************************
 *Local Includes
@@ -110,7 +109,7 @@ ipsec_ret IPsecNetlinkAPI::add_sa(const ipsec_sa& sa)
     xfrm_sa->mode       = (uint8_t)sa.m_mode;
     xfrm_sa->reqid      = sa.m_req_id;
     xfrm_sa->flags      = sa.m_flags;
-    xfrm_sa->replay_window  = 255;
+    xfrm_sa->replay_window  = sa.m_stats.m_replay_window;
 
     ///////////////////////////////////////
     //Set XFRM SA Selector
@@ -218,7 +217,6 @@ ipsec_ret IPsecNetlinkAPI::add_sa(const ipsec_sa& sa)
         return ipsec_ret::SOCKET_SEND_FAILED;
     }
 
-
     if(m_mnl_wrapper.socket_recvfrom(nl_socket, buf, sizeof(buf)) < 0)
     {
         m_mnl_wrapper.socket_close(nl_socket);
@@ -272,15 +270,15 @@ ipsec_ret IPsecNetlinkAPI::get_sa(uint32_t spi, ipsec_sa& sa)
     memset(xfrm_said, 0, sizeof(struct xfrm_usersa_id));
 
     ///////////////////////////////////////
+    //Set XFRM SA SPI
+    xfrm_said->spi     = htonl(spi);
+
+    ///////////////////////////////////////
     //Get Socket
     if(create_socket(&nl_socket, 0) != ipsec_ret::OK)
     {
         return ipsec_ret::SOCKET_CREATE_FAILED;
     }
-
-    ///////////////////////////////////////
-    //Set XFRM SA SPI
-    xfrm_said->spi     = htonl(spi);
 
     ///////////////////////////////////////
     //Get Socket Port ID
@@ -332,7 +330,7 @@ ipsec_ret IPsecNetlinkAPI::get_sa(uint32_t spi, ipsec_sa& sa)
     return ipsec_ret::OK;
 }
 
-ipsec_ret IPsecNetlinkAPI::del_sa(uint32_t spi)
+ipsec_ret IPsecNetlinkAPI::del_sa(const ipsec_sa_id& id)
 {
     struct mnl_socket* nl_socket = nullptr;
     struct nlmsghdr* nlh = nullptr;
@@ -360,15 +358,18 @@ ipsec_ret IPsecNetlinkAPI::del_sa(uint32_t spi)
     memset(xfrm_said, 0, sizeof(struct xfrm_usersa_id));
 
     ///////////////////////////////////////
+    //Set XFRM SA ID
+    xfrm_said->spi     = htonl(id.m_spi);
+    xfrm_said->family  = id.m_addr_family;
+    xfrm_said->proto   = id.m_protocol;
+    memcpy(&xfrm_said->daddr, &id.m_dst_ip, IP_ADDRESS_LENGTH);
+
+    ///////////////////////////////////////
     //Get Socket
     if(create_socket(&nl_socket, 0) != ipsec_ret::OK)
     {
         return ipsec_ret::SOCKET_CREATE_FAILED;
     }
-
-    ///////////////////////////////////////
-    //Set XFRM SA SPI
-    xfrm_said->spi     = htonl(spi);
 
     ///////////////////////////////////////
     //Send Request
