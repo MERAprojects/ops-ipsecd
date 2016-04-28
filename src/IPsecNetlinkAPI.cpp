@@ -932,8 +932,11 @@ int IPsecNetlinkAPI::mnl_parse_xfrm_sp(const struct nlmsghdr* nlh, void* data)
 
     ///////////////////////////////////////
     //Parse the Netlink Conntrack Attributes
+    CB_Data user_data;
+    user_data.m_netlink_api = cbData->m_netlink_api;
+    user_data.user_data = nl_attrs;
     if(mnl_wrapper.attr_parse_payload(payload, payloadLen,
-                                      parse_nested_attr, nl_attrs) < 0)
+                                      parse_nested_attr, &user_data) < 0)
     {
         return MNL_CB_ERROR;
     }
