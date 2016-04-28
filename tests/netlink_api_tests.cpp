@@ -79,6 +79,24 @@ class FakeCalls
 
             return 0;
         }
+
+        int attr_parse_payload(const void* payload, size_t payload_len,
+                                       mnl_attr_cb_t cb, void* data)
+        {
+            if(payload == nullptr || data == nullptr)
+            {
+                return -1;
+            }
+
+            IPsecNetlinkAPI::CB_Data* userdata = (IPsecNetlinkAPI::CB_Data*)data;
+
+            struct nlattr** nl_attrs = (struct nlattr**)userdata->user_data;
+
+            nl_attrs[XFRMA_ALG_CRYPT] = (struct nlattr*)0x100;
+            nl_attrs[XFRMA_ALG_AUTH] = (struct nlattr*)0x200;
+
+            return 0;
+        }
 };
 
 class IPsecNetlinkAPI_EnO : public IPsecNetlinkAPI
@@ -96,9 +114,24 @@ class IPsecNetlinkAPI_EnO : public IPsecNetlinkAPI
             return create_socket(nl_socket, groups);
         }
 
+        mnl_cb_t addr_mnl_parse_xfrm_sa()
+        {
+            return mnl_parse_xfrm_sa;
+        }
+
         int call_parse_nested_attr(const struct nlattr* nl_attr, void* data)
         {
             return parse_nested_attr(nl_attr, data);
+        }
+
+        int call_mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data)
+        {
+            return mnl_parse_xfrm_sa(nlh, data);
+        }
+
+        mnl_attr_cb_t addr_parse_nested_attr()
+        {
+            return parse_nested_attr;
         }
 };
 
@@ -637,7 +670,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSA)
             .WillOnce(Return(socketRet));
 
     EXPECT_CALL(m_mnl_wrapper, cb_run(NotNull(), Eq(socketRet), _, Eq(pid),
-                                      NotNull(), NotNull()));
+                            Eq(m_netlink_api.addr_mnl_parse_xfrm_sa()), NotNull()));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
 
@@ -854,7 +887,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSANotFound)
             .WillOnce(Return(socketRet));
 
     EXPECT_CALL(m_mnl_wrapper, cb_run(NotNull(), Eq(socketRet), _, Eq(pid),
-                                      NotNull(), NotNull()));
+                           Eq(m_netlink_api.addr_mnl_parse_xfrm_sa()), NotNull()));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
 
@@ -1257,4 +1290,147 @@ TEST_F(IPsecNetlinkAPITestSuite, TestParseNestedAttrNotValid)
     ///////////////////////////////////////
 
     EXPECT_EQ(nl_attrs[idx], nullptr);
+}
+
+/**
+ * Objective: Verify that parse xfrm sa will work as intended
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSA)
+{
+    FakeCalls fakeCalls;
+    IPsecNetlinkAPI::CB_Data cbdata;
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    ipsec_sa sa;
+    struct xfrm_usersa_info xfrm_sa[2] = { 0 };
+    struct xfrm_usersa_info* p_xfrm_sa = xfrm_sa;
+    struct nlattr* nl_attr_crypt = (struct nlattr*)0x100;
+    struct nlattr* nl_attr_auth = (struct nlattr*)0x200;
+    struct xfrm_algo* xfrm_crypt = nullptr;
+    struct xfrm_algo* xfrm_auth = nullptr;
+    uint32_t xfrm_algo_size = sizeof(struct xfrm_algo) + 16;
+
+    uint8_t key1[] = {0x11, 0x11, 0x22, 0x22, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55,
+                      0x66, 0x66, 0x77, 0x77, 0x88, 0x88};
+    std::string str_key1 = "11112222333344445555666677778888";
+
+    uint8_t key2[] = {0x00, 0x00, 0x99, 0x99, 0x33, 0x33, 0x44, 0x44, 0x55, 0x55,
+                      0x66, 0x66, 0x77, 0x77, 0x88, 0x88};
+    std::string str_key2 = "00009999333344445555666677778888";
+
+    ///////////////////////////////////////
+
+    cbdata.m_netlink_api = &m_netlink_api;
+    cbdata.user_data = &sa;
+
+    xfrm_sa[0].family = AF_INET;
+    xfrm_sa[0].flags = 1;
+    xfrm_sa[0].mode = 1;
+    xfrm_sa[0].replay_window = 32;
+    xfrm_sa[0].reqid = 0x222;
+
+    xfrm_sa[0].saddr.a4 = inet_addr("10.100.0.1");
+
+    xfrm_sa[0].id.daddr.a4 = inet_addr("10.100.0.2");
+    xfrm_sa[0].id.proto = 50;
+    xfrm_sa[0].id.spi = htonl(0x111);
+
+    xfrm_sa[0].curlft.add_time = 900;
+    xfrm_sa[0].curlft.use_time = 800;
+    xfrm_sa[0].curlft.packets = 700;
+    xfrm_sa[0].curlft.bytes = 600;
+
+    xfrm_sa[0].stats.integrity_failed = 10;
+    xfrm_sa[0].stats.replay = 20;
+    xfrm_sa[0].stats.replay_window = 30;
+
+    xfrm_sa[0].sel.saddr.a4 = inet_addr("192.168.1.0");
+    xfrm_sa[0].sel.daddr.a4 = inet_addr("192.168.2.0");
+    xfrm_sa[0].sel.family = AF_INET;
+    xfrm_sa[0].sel.prefixlen_s = 24;
+    xfrm_sa[0].sel.prefixlen_d = 24;
+
+    nlh.nlmsg_len = sizeof(struct xfrm_usersa_info);
+    nlh.nlmsg_type = XFRM_MSG_GETSA;
+
+    xfrm_crypt = (struct xfrm_algo*)new uint8_t[xfrm_algo_size];
+    memset(xfrm_crypt, 0, xfrm_algo_size);
+    strncpy(xfrm_crypt->alg_name, "aes", IPSEC_MAX_ALGO_NAME_LEN);
+    memcpy(xfrm_crypt->alg_key, key1, 16);
+    xfrm_crypt->alg_key_len = 16 * 8;
+
+    xfrm_auth = (struct xfrm_algo*)new uint8_t[xfrm_algo_size];
+    memset(xfrm_auth, 0, xfrm_algo_size);
+    strncpy(xfrm_auth->alg_name, "sha1", IPSEC_MAX_ALGO_NAME_LEN);
+    memcpy(xfrm_auth->alg_key, key2, 16);
+    xfrm_auth->alg_key_len = 16 * 8;
+
+    ///////////////////////////////////////
+
+    ON_CALL(m_mnl_wrapper, attr_parse_payload(_, _, _, _))
+            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::attr_parse_payload));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(p_nlh)))
+            .WillOnce(Return(p_xfrm_sa));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_parse_payload(Eq(&xfrm_sa[1]), Eq(0),
+                            Eq(m_netlink_api.addr_parse_nested_attr()), NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_get_payload(Eq(nl_attr_crypt)))
+            .WillOnce(Return(xfrm_crypt));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_get_payload(Eq(nl_attr_auth)))
+            .WillOnce(Return(xfrm_auth));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sa(p_nlh, &cbdata), MNL_CB_OK);
+
+    ///////////////////////////////////////
+
+    EXPECT_TRUE(sa.m_crypt_set);
+    EXPECT_EQ(sa.m_crypt.m_name.compare(xfrm_crypt->alg_name), 0);
+    EXPECT_EQ(sa.m_crypt.m_key.compare(str_key1), 0);
+
+    EXPECT_TRUE(sa.m_auth_set);
+    EXPECT_EQ(sa.m_auth.m_name.compare(xfrm_auth->alg_name), 0);
+    EXPECT_EQ(sa.m_auth.m_key.compare(str_key2), 0);
+
+    EXPECT_EQ(sa.m_id.m_addr_family, xfrm_sa[0].family);
+    EXPECT_EQ(sa.m_flags, xfrm_sa[0].flags);
+    EXPECT_EQ(sa.m_mode, (ipsec_mode)xfrm_sa[0].mode);
+    EXPECT_EQ(sa.m_replay_window, xfrm_sa[0].replay_window);
+    EXPECT_EQ(sa.m_req_id, xfrm_sa[0].reqid);
+
+    EXPECT_EQ(memcmp(&sa.m_id.m_src_ip, &xfrm_sa[0].saddr, IP_ADDRESS_LENGTH), 0);
+
+    EXPECT_EQ(memcmp(&sa.m_id.m_dst_ip, &xfrm_sa[0].id.daddr, IP_ADDRESS_LENGTH), 0);
+    EXPECT_EQ(sa.m_id.m_protocol, xfrm_sa[0].id.proto);
+    EXPECT_EQ(htonl(sa.m_id.m_spi), xfrm_sa[0].id.spi);
+
+    EXPECT_EQ(sa.m_lifetime_current.m_add_time, xfrm_sa[0].curlft.add_time);
+    EXPECT_EQ(sa.m_lifetime_current.m_use_time, xfrm_sa[0].curlft.use_time);
+    EXPECT_EQ(sa.m_lifetime_current.m_packets, xfrm_sa[0].curlft.packets);
+    EXPECT_EQ(sa.m_lifetime_current.m_bytes, xfrm_sa[0].curlft.bytes);
+
+    EXPECT_EQ(sa.m_stats.m_integrity_failed, xfrm_sa[0].stats.integrity_failed);
+    EXPECT_EQ(sa.m_stats.m_replay, xfrm_sa[0].stats.replay);;
+    EXPECT_EQ(sa.m_stats.m_replay_window, xfrm_sa[0].stats.replay_window);;
+
+    EXPECT_EQ(memcmp(&sa.m_selector.m_src_addr, &xfrm_sa[0].sel.saddr, IP_ADDRESS_LENGTH), 0);
+    EXPECT_EQ(memcmp(&sa.m_selector.m_dst_addr, &xfrm_sa[0].sel.daddr, IP_ADDRESS_LENGTH), 0);
+    EXPECT_EQ(sa.m_selector.m_addr_family, xfrm_sa[0].sel.family);
+    EXPECT_EQ(sa.m_selector.m_src_mask, xfrm_sa[0].sel.prefixlen_s);
+    EXPECT_EQ(sa.m_selector.m_dst_mask, xfrm_sa[0].sel.prefixlen_d);
+
+    DeleteMemArr(xfrm_crypt);
+    DeleteMemArr(xfrm_auth);
+}
+
+/**
+ * Objective: Verify that parse xfrm sa will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSADataNull)
+{
+    EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sa(nullptr, nullptr), MNL_CB_ERROR);
 }
