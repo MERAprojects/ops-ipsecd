@@ -31,6 +31,12 @@
 #include "ILibmnlWrapper.h"
 
 /**********************************
+*Defines
+**********************************/
+
+#define IPSEC_NETLINK_CB_DATA_MAGIC     0xAECDFFAA
+
+/**********************************
 *Forward Decl
 **********************************/
 
@@ -106,6 +112,7 @@ class IPsecNetlinkAPI : public IIPsecAPI
          */
         struct CB_Data
         {
+            const uint32_t m_magic = IPSEC_NETLINK_CB_DATA_MAGIC;
             IPsecNetlinkAPI* m_netlink_api = nullptr;
             void* user_data = nullptr;
         };

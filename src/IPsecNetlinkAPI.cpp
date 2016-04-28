@@ -427,6 +427,12 @@ int IPsecNetlinkAPI::parse_nested_attr(const struct nlattr* nl_attr, void* data)
     }
 
     CB_Data* cbData = (CB_Data*)data;
+
+    if(cbData->m_magic != IPSEC_NETLINK_CB_DATA_MAGIC)
+    {
+        return MNL_CB_ERROR;
+    }
+
     ILibmnlWrapper& mnl_wrapper = cbData->m_netlink_api->m_mnl_wrapper;
 
     const struct nlattr** nl_attrs = (const struct nlattr**)cbData->user_data;
@@ -455,6 +461,12 @@ int IPsecNetlinkAPI::mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data)
     }
 
     CB_Data* cbData = (CB_Data*)data;
+
+    if(cbData->m_magic != IPSEC_NETLINK_CB_DATA_MAGIC)
+    {
+        return MNL_CB_ERROR;
+    }
+
     ILibmnlWrapper& mnl_wrapper = cbData->m_netlink_api->m_mnl_wrapper;
     ipsec_sa* sa = (ipsec_sa*)cbData->user_data;
 
@@ -893,6 +905,12 @@ int IPsecNetlinkAPI::mnl_parse_xfrm_sp(const struct nlmsghdr* nlh, void* data)
     }
 
     CB_Data* cbData = (CB_Data*)data;
+
+    if(cbData->m_magic != IPSEC_NETLINK_CB_DATA_MAGIC)
+    {
+        return MNL_CB_ERROR;
+    }
+
     ILibmnlWrapper& mnl_wrapper = cbData->m_netlink_api->m_mnl_wrapper;
     ipsec_sp* sp = (ipsec_sp*)cbData->user_data;
 
