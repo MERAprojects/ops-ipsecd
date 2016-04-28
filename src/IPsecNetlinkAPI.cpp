@@ -466,11 +466,6 @@ int IPsecNetlinkAPI::mnl_parse_xfrm_sa(const struct nlmsghdr* nlh, void* data)
         return MNL_CB_ERROR;
     }
 
-    if(data == nullptr)
-    {
-        return MNL_CB_ERROR;
-    }
-
     ///////////////////////////////////////
     //Get Payload
     uint8_t* payload = (uint8_t*)mnl_wrapper.nlmsg_get_payload(nlh);
