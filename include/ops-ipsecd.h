@@ -710,14 +710,15 @@ struct ipsec_key
 
 struct ipsec_sa
 {
-    ipsec_mode m_mode       = ipsec_mode::transport;
-    uint32_t m_req_id       = 0;
-    uint8_t m_flags         = 0;
+    ipsec_mode m_mode        = ipsec_mode::transport;
+    uint32_t m_req_id        = 0;
+    uint8_t m_flags          = 0;
+    uint32_t m_replay_window = 0;
 
-    bool m_crypt_set        = false;
+    bool m_crypt_set         = false;
     ipsec_key m_crypt;
 
-    bool m_auth_set         = false;
+    bool m_auth_set          = false;
     ipsec_key m_auth;
 
     ipsec_sa_id m_id;

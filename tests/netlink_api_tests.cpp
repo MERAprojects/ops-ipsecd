@@ -148,7 +148,7 @@ class IPsecNetlinkAPITestSuite : public Test
             sa.m_mode = ipsec_mode::transport;
             sa.m_req_id = 0x100;
             sa.m_flags = 0;
-            sa.m_stats.m_replay_window = 32;
+            sa.m_replay_window = 32;
 
             sa.m_selector.m_src_addr.m_ipv4 = inet_addr("10.100.0.0");
             sa.m_selector.m_dst_addr.m_ipv4 = inet_addr("10.200.0.0");
@@ -183,7 +183,7 @@ class IPsecNetlinkAPITestSuite : public Test
             EXPECT_EQ(xfrm_sa.mode, (uint8_t)sa.m_mode);
             EXPECT_EQ(xfrm_sa.reqid, sa.m_req_id);
             EXPECT_EQ(xfrm_sa.flags, sa.m_flags);
-            EXPECT_EQ(xfrm_sa.replay_window, sa.m_stats.m_replay_window);
+            EXPECT_EQ(xfrm_sa.replay_window, sa.m_replay_window);
 
             EXPECT_EQ(memcmp(&xfrm_sa.sel.saddr, &sa.m_selector.m_src_addr, IP_ADDRESS_LENGTH), 0);
             EXPECT_EQ(memcmp(&xfrm_sa.sel.daddr, &sa.m_selector.m_dst_addr, IP_ADDRESS_LENGTH), 0);

@@ -106,10 +106,10 @@ ipsec_ret IPsecNetlinkAPI::add_sa(const ipsec_sa& sa)
 
     ///////////////////////////////////////
     //Set XFRM SA Base
-    xfrm_sa->mode       = (uint8_t)sa.m_mode;
-    xfrm_sa->reqid      = sa.m_req_id;
-    xfrm_sa->flags      = sa.m_flags;
-    xfrm_sa->replay_window  = sa.m_stats.m_replay_window;
+    xfrm_sa->mode           = (uint8_t)sa.m_mode;
+    xfrm_sa->reqid          = sa.m_req_id;
+    xfrm_sa->flags          = sa.m_flags;
+    xfrm_sa->replay_window  = sa.m_replay_window;
 
     ///////////////////////////////////////
     //Set XFRM SA Selector
@@ -527,11 +527,12 @@ ipsec_ret IPsecNetlinkAPI::parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
     sa->m_id.m_addr_family   = xfrm_sa->family;
     sa->m_id.m_spi           = ntohl(xfrm_sa->id.spi);
     sa->m_id.m_protocol      = xfrm_sa->id.proto;
-    memcpy(&sa->m_id.m_dst_ip, &xfrm_sa->saddr, IP_ADDRESS_LENGTH);
+    memcpy(&sa->m_id.m_src_ip, &xfrm_sa->saddr, IP_ADDRESS_LENGTH);
     memcpy(&sa->m_id.m_dst_ip, &xfrm_sa->id.daddr, IP_ADDRESS_LENGTH);
     sa->m_mode               = (ipsec_mode)xfrm_sa->mode;
     sa->m_req_id             = xfrm_sa->reqid;
     sa->m_flags              = xfrm_sa->flags;
+    sa->m_replay_window      = xfrm_sa->replay_window;
 
     memcpy(&sa->m_selector.m_src_addr, &xfrm_sa->sel.saddr, IP_ADDRESS_LENGTH);
     memcpy(&sa->m_selector.m_dst_addr, &xfrm_sa->sel.daddr, IP_ADDRESS_LENGTH);
@@ -571,7 +572,7 @@ ipsec_ret IPsecNetlinkAPI::parse_xfrm_sa(struct xfrm_usersa_info* xfrm_sa,
         struct xfrm_algo* xfrm_auth =
                 (struct xfrm_algo*)m_mnl_wrapper.attr_get_payload(nl_attrs[XFRMA_ALG_AUTH]);
 
-        uint32_t key_size = (xfrm_auth->alg_key_len / 8) * 2;
+        uint32_t key_size = (xfrm_auth->alg_key_len / 8);
 
         sa->m_auth.m_key = ipsecd_helper::key_to_str(xfrm_auth->alg_key, key_size);
 
