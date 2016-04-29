@@ -46,7 +46,9 @@ class FakeCalls
 {
     public:
 
-        int32_t cb_run(const void* buf, size_t numbytes, uint32_t seq, uint32_t portid,
+        struct xfrm_user_tmpl m_tmpl;
+
+        int32_t cb_run_sa(const void* buf, size_t numbytes, uint32_t seq, uint32_t portid,
                        mnl_cb_t cb_data, void* data)
         {
             if(data == nullptr)
@@ -63,8 +65,8 @@ class FakeCalls
             return 0;
         }
 
-        int32_t cb_run_not_found(const void* buf, size_t numbytes, uint32_t seq,
-                uint32_t portid, mnl_cb_t cb_data, void* data)
+        int32_t cb_run_sp(const void* buf, size_t numbytes, uint32_t seq, uint32_t portid,
+                       mnl_cb_t cb_data, void* data)
         {
             if(data == nullptr)
             {
@@ -73,9 +75,9 @@ class FakeCalls
 
             IPsecNetlinkAPI::CB_Data* userdata = (IPsecNetlinkAPI::CB_Data*)data;
 
-            ipsec_sa* sa = (ipsec_sa*)userdata->user_data;
+            ipsec_sp* sp = (ipsec_sp*)userdata->user_data;
 
-            sa->m_id.m_addr_family = 0;
+            sp->m_index = 1;
 
             return 0;
         }
@@ -96,6 +98,16 @@ class FakeCalls
             nl_attrs[XFRMA_ALG_AUTH] = (struct nlattr*)0x200;
 
             return 0;
+        }
+
+        void attr_put(struct nlmsghdr* nlh, uint16_t type, size_t len, const void* data)
+        {
+            if(data == nullptr)
+            {
+                return;
+            }
+
+            memcpy(&m_tmpl, data, sizeof(xfrm_user_tmpl));
         }
 };
 
@@ -132,6 +144,11 @@ class IPsecNetlinkAPI_EnO : public IPsecNetlinkAPI
         mnl_attr_cb_t addr_parse_nested_attr()
         {
             return parse_nested_attr;
+        }
+
+        mnl_cb_t addr_mnl_parse_xfrm_sp()
+        {
+            return mnl_parse_xfrm_sp;
         }
 };
 
@@ -235,6 +252,82 @@ class IPsecNetlinkAPITestSuite : public Test
 
             EXPECT_EQ(xfrm_sa.lft.hard_use_expires_seconds, 0);
             EXPECT_EQ(xfrm_sa.lft.soft_use_expires_seconds, 0);
+        }
+
+        void fill_ipsec_sp(ipsec_sp& sp)
+        {
+            sp.m_action = ipsec_action::allow;
+            sp.m_index = 1024;
+            sp.m_priority = 2556;
+
+            sp.m_id.m_dir = ipsec_direction::inbound;
+
+            sp.m_id.m_selector.m_addr_family = AF_INET;
+            sp.m_id.m_selector.m_src_addr.m_ipv4 = inet_addr("10.100.1.0");
+            sp.m_id.m_selector.m_src_mask = 24;
+            sp.m_id.m_selector.m_dst_addr.m_ipv4 = inet_addr("10.100.2.0");
+            sp.m_id.m_selector.m_dst_mask = 24;
+
+            ipsec_tmpl tmpl;
+            tmpl.m_addr_family = AF_INET;
+            tmpl.m_src_ip.m_ipv4 = inet_addr("10.100.1.1");;
+            tmpl.m_dst_ip.m_ipv4 = inet_addr("10.100.2.1");;
+            tmpl.m_mode = ipsec_mode::tunnel;
+            tmpl.m_protocol = 50;
+            tmpl.m_req_id = 0x100;
+
+            sp.m_template_lists.push_back(tmpl);
+        }
+
+        void set_expect_ipsec_sp(const struct nlmsghdr& nlh,
+                                 const struct xfrm_userpolicy_info& xfrm_sp,
+                                 const ipsec_sp& sp,
+                                 uint16_t flags,
+                                 const struct xfrm_user_tmpl& tmplArr)
+        {
+            EXPECT_EQ(nlh.nlmsg_type, XFRM_MSG_NEWPOLICY);
+            EXPECT_EQ(nlh.nlmsg_flags, flags);
+            EXPECT_NE(nlh.nlmsg_seq, 0);
+
+            EXPECT_EQ((ipsec_action)xfrm_sp.action, sp.m_action);
+            EXPECT_EQ(xfrm_sp.index, sp.m_index);
+            EXPECT_EQ(xfrm_sp.priority, sp.m_priority);
+
+            EXPECT_EQ((ipsec_direction)xfrm_sp.dir, sp.m_id.m_dir);
+
+            EXPECT_EQ(xfrm_sp.sel.family, sp.m_id.m_selector.m_addr_family);
+            EXPECT_EQ(memcmp(&xfrm_sp.sel.saddr, &sp.m_id.m_selector.m_src_addr, IP_ADDRESS_LENGTH), 0);
+            EXPECT_EQ(memcmp(&xfrm_sp.sel.daddr, &sp.m_id.m_selector.m_dst_addr, IP_ADDRESS_LENGTH), 0);
+            EXPECT_EQ(xfrm_sp.sel.prefixlen_s, sp.m_id.m_selector.m_src_mask);
+            EXPECT_EQ(xfrm_sp.sel.prefixlen_d, sp.m_id.m_selector.m_dst_mask);
+
+            EXPECT_EQ(xfrm_sp.lft.soft_byte_limit, XFRM_INF);
+            EXPECT_EQ(xfrm_sp.lft.hard_byte_limit, XFRM_INF);
+
+            EXPECT_EQ(xfrm_sp.lft.soft_packet_limit, XFRM_INF);
+            EXPECT_EQ(xfrm_sp.lft.hard_packet_limit, XFRM_INF);
+
+            EXPECT_EQ(xfrm_sp.lft.hard_add_expires_seconds, 0);
+            EXPECT_EQ(xfrm_sp.lft.soft_add_expires_seconds, 0);
+
+            EXPECT_EQ(xfrm_sp.lft.hard_use_expires_seconds, 0);
+            EXPECT_EQ(xfrm_sp.lft.soft_use_expires_seconds, 0);
+
+
+            EXPECT_EQ(memcmp(&tmplArr.saddr, &sp.m_template_lists[0].m_src_ip, IP_ADDRESS_LENGTH), 0);
+
+            EXPECT_EQ(tmplArr.id.proto, sp.m_template_lists[0].m_protocol);
+            EXPECT_EQ(memcmp(&tmplArr.id.daddr, &sp.m_template_lists[0].m_dst_ip, IP_ADDRESS_LENGTH), 0);
+
+            EXPECT_EQ(tmplArr.family, sp.m_template_lists[0].m_addr_family);
+            EXPECT_EQ((ipsec_mode)tmplArr.mode, sp.m_template_lists[0].m_mode);
+
+            EXPECT_EQ(tmplArr.reqid, sp.m_template_lists[0].m_req_id);
+
+            EXPECT_EQ(tmplArr.ealgos, (~(uint32_t)0));
+            EXPECT_EQ(tmplArr.aalgos, (~(uint32_t)0));
+            EXPECT_EQ(tmplArr.calgos, (~(uint32_t)0));
+            EXPECT_EQ(tmplArr.id.spi, 0);
         }
 };
 
@@ -346,7 +439,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSA)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(0));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(0));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
@@ -549,7 +642,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSASocketReceiveToFailed)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(0));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(-1));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
@@ -607,7 +700,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSAErrorInMsg)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(0));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(0));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
@@ -649,7 +742,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSA)
     ///////////////////////////////////////
 
     ON_CALL(m_mnl_wrapper, cb_run(_, _, _, _, _, _))
-            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::cb_run));
+            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::cb_run_sa));
 
     EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
             .WillOnce(Return(p_nlh));
@@ -666,7 +759,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSA)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(1));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(socketRet));
 
     EXPECT_CALL(m_mnl_wrapper, cb_run(NotNull(), Eq(socketRet), _, Eq(pid),
@@ -833,7 +926,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSASocketRevcFailed)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(1));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(-1));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
@@ -855,7 +948,6 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSANotFound)
     uint16_t flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_DUMP;
     uint32_t pid = 200;
     ssize_t socketRet = 100;
-    FakeCalls fakeCalls;
     ipsec_sa sa;
 
     ///////////////////////////////////////
@@ -864,9 +956,6 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSANotFound)
     nlh.nlmsg_len = 100;
 
     ///////////////////////////////////////
-
-    ON_CALL(m_mnl_wrapper, cb_run(_, _, _, _, _, _))
-            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::cb_run_not_found));
 
     EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
             .WillOnce(Return(p_nlh));
@@ -883,7 +972,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateGetSANotFound)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(1));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(socketRet));
 
     EXPECT_CALL(m_mnl_wrapper, cb_run(NotNull(), Eq(socketRet), _, Eq(pid),
@@ -942,7 +1031,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSA)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(1));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(1));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
@@ -1135,7 +1224,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSASocketRevcFailed)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(1));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(-1));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
@@ -1185,7 +1274,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestCreateDelSAErrorInMsg)
     EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
             .WillOnce(Return(1));
 
-    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Ne(0)))
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
             .WillOnce(Return(1));
 
     EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
@@ -1551,4 +1640,303 @@ TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSANullObjectParseSA)
     ///////////////////////////////////////
 
     EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sa(p_nlh, &cbdata), MNL_CB_ERROR);
+}
+
+/**
+ * Objective: Verify that add sp will call the correct methods
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSP)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_userpolicy_info xfrm_sp;
+    struct xfrm_userpolicy_info* p_xfrm_sp = &xfrm_sp;
+    struct nlmsgerr err;
+    struct nlmsgerr* p_err = &err;
+    uint16_t flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_CREATE | NLM_F_EXCL;
+    ipsec_sp sp;
+    uint32_t tmpl_size = 0;
+    FakeCalls fakeCalls;
+
+    ///////////////////////////////////////
+
+    err.error = 0;
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sp(sp);
+
+    tmpl_size = sizeof(struct xfrm_user_tmpl) * sp.m_template_lists.size();
+
+    ///////////////////////////////////////
+
+    ON_CALL(m_mnl_wrapper, attr_put(_, _, _, _))
+            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::attr_put));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_userpolicy_info))))
+            .WillOnce(Return(p_xfrm_sp));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(0));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
+            .WillOnce(Return(0));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_TMPL), Eq(tmpl_size), NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(p_nlh)))
+            .WillOnce(Return(p_err));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sp(sp), ipsec_ret::OK);
+
+    ///////////////////////////////////////
+
+    set_expect_ipsec_sp(nlh, xfrm_sp, sp, flags, fakeCalls.m_tmpl);
+}
+
+/**
+ * Objective: Verify that add sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSPPutHeaderFails)
+{
+    ipsec_sp sp;
+
+    ///////////////////////////////////////
+    fill_ipsec_sp(sp);
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(nullptr));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sp(sp), ipsec_ret::ALLOC_FAILED);
+}
+
+/**
+ * Objective: Verify that add sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSPPutExtraHeaderFails)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    ipsec_sp sp;
+
+    ///////////////////////////////////////
+
+    fill_ipsec_sp(sp);
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_userpolicy_info))))
+            .WillOnce(Return(nullptr));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sp(sp), ipsec_ret::ALLOC_FAILED);
+}
+
+/**
+ * Objective: Verify that add sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSPCreateSocketFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_userpolicy_info xfrm_sp;
+    struct xfrm_userpolicy_info* p_xfrm_sp = &xfrm_sp;
+    ipsec_sp sp;
+    uint32_t tmpl_size = 0;
+
+    ///////////////////////////////////////
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sp(sp);
+
+    tmpl_size = sizeof(struct xfrm_user_tmpl) * sp.m_template_lists.size();
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_userpolicy_info))))
+            .WillOnce(Return(p_xfrm_sp));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_TMPL), Eq(tmpl_size), NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_open(Eq(NETLINK_XFRM)))
+            .WillOnce(Return(nullptr));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sp(sp), ipsec_ret::SOCKET_CREATE_FAILED);
+}
+
+/**
+ * Objective: Verify that add sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSPSocketSendToFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_userpolicy_info xfrm_sp;
+    struct xfrm_userpolicy_info* p_xfrm_sp = &xfrm_sp;
+    ipsec_sp sp;
+    uint32_t tmpl_size = 0;
+
+    ///////////////////////////////////////
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sp(sp);
+
+    tmpl_size = sizeof(struct xfrm_user_tmpl) * sp.m_template_lists.size();
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_userpolicy_info))))
+            .WillOnce(Return(p_xfrm_sp));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_TMPL), Eq(tmpl_size), NotNull()));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(-1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sp(sp), ipsec_ret::SOCKET_SEND_FAILED);
+}
+
+/**
+ * Objective: Verify that add sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSPSocketReceiveToFailed)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_userpolicy_info xfrm_sp;
+    struct xfrm_userpolicy_info* p_xfrm_sp = &xfrm_sp;
+    ipsec_sp sp;
+    uint32_t tmpl_size = 0;
+
+    ///////////////////////////////////////
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sp(sp);
+
+    tmpl_size = sizeof(struct xfrm_user_tmpl) * sp.m_template_lists.size();
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_userpolicy_info))))
+            .WillOnce(Return(p_xfrm_sp));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_TMPL), Eq(tmpl_size), NotNull()));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(0));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
+            .WillOnce(Return(-1));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sp(sp), ipsec_ret::SOCKET_RECV_FAILED);
+}
+
+/**
+ * Objective: Verify that add sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestCreateAddSPErrorInMsg)
+{
+    struct nlmsghdr nlh;
+    struct nlmsghdr* p_nlh = &nlh;
+    struct xfrm_userpolicy_info xfrm_sp;
+    struct xfrm_userpolicy_info* p_xfrm_sp = &xfrm_sp;
+    struct nlmsgerr err;
+    struct nlmsgerr* p_err = &err;
+    uint16_t flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_CREATE | NLM_F_EXCL;
+    ipsec_sp sp;
+    uint32_t tmpl_size = 0;
+    FakeCalls fakeCalls;
+
+    ///////////////////////////////////////
+
+    nlh.nlmsg_seq = 0;
+    nlh.nlmsg_len = 100;
+    fill_ipsec_sp(sp);
+
+    tmpl_size = sizeof(struct xfrm_user_tmpl) * sp.m_template_lists.size();
+
+    ///////////////////////////////////////
+
+    ON_CALL(m_mnl_wrapper, attr_put(_, _, _, _))
+            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::attr_put));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_header(NotNull()))
+            .WillOnce(Return(p_nlh));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_put_extra_header(Eq(p_nlh),
+                                   Eq(sizeof(struct xfrm_userpolicy_info))))
+            .WillOnce(Return(p_xfrm_sp));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_put(Eq(p_nlh), Eq(XFRMA_TMPL), Eq(tmpl_size), NotNull()));
+
+    set_create_socket_ok_expectation(0);
+
+    EXPECT_CALL(m_mnl_wrapper, socket_sendto(NotNull(), Eq(p_nlh), Eq(nlh.nlmsg_len)))
+            .WillOnce(Return(0));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_recvfrom(NotNull(), NotNull(), Eq(MNL_SOCKET_BUFFER_SIZE)))
+            .WillOnce(Return(0));
+
+    EXPECT_CALL(m_mnl_wrapper, socket_close(NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(p_nlh)))
+            .WillOnce(Return(p_err));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.add_sp(sp), ipsec_ret::ADD_FAILED);
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(-err.error, errno);
+
+    set_expect_ipsec_sp(nlh, xfrm_sp, sp, flags, fakeCalls.m_tmpl);
 }

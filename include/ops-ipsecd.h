@@ -743,7 +743,6 @@ struct ipsec_sp
     uint32_t m_index            = 0;
     ipsec_action m_action       = ipsec_action::allow;
     uint32_t m_priority         = 0;
-    ipsec_selector m_selector;
     std::vector<ipsec_tmpl> m_template_lists;
 };
 
