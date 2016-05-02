@@ -973,6 +973,58 @@ static void ipsec_ucc_show_sa(const ipsec_sa& sa, std::string& msg)
     msg.append("\n\n");
 }
 
+static void ipsec_ucc_sp_usage(std::string& msg)
+{
+    msg.append("\n\nUsage: ipsecd/sp create, get and delete a SP\n\n"
+            "add PARAM [VALUES]\n"
+            "valid PARAM VALUES are:\n"
+            "   act [allow,block]\n"
+            "   direction [in,out,fwd]\n"
+            "   index [int]\n"
+            "   pri [int]\n"
+            "   ip [src_add dst_add]\n"
+            "   mask [src_mask dst_mask]\n"
+            "   tmpl ip [src_add dst_add] proto [int] mode "
+            "[transport, tunnel] id [int]\n"
+            "get PARAM [VALUES]\n"
+            "valid PARAM VALUES are\n"
+            "   direction [in,out,fwd]\n"
+            "   ip [src_add dst_add]\n"
+            "   mask [src_mask dst_mask]\n"
+            "delete PARAM [VALUES]\n"
+            "valid PARAM VALUES are\n"
+            "   direction [in,out,fwd]\n"
+            "   ip [src_add dst_add]\n"
+            "   mask [src_mask dst_mask]\n"
+            "\n\n"
+            );
+}
+
+static void ipsec_ucc_sa_usage(std::string& msg)
+{
+    msg.append("\n\nUsage: ipsecd/sa create, get and delete a SA\n\n"
+            "add PARAM [VALUES]\n"
+            "valid PARAM VALUES are:\n"
+            "   proto [uint8]\n"
+            "   spi [int]\n"
+            "   ip [src_add dst_add]\n"
+            "   mode [tunnel, transport]\n"
+            "   id [int]\n"
+            "   flags [uint8]\n"
+            "   addr_range [src_add dst_add]\n"
+            "   mask [src_mask dst_mask]\n"
+            "   auth [key value]\n"
+            "   crypt [key value]\n"
+            "get [spi_number]\n"
+            "delete PARAM [VALUES]\n"
+            "valid PARAM VALUES are\n"
+            "   spi [int]\n"
+            "   proto [uint8]\n"
+            "   ip [src_ip dst_ip]\n"
+            "\n\n"
+            );
+}
+
 static void ipsec_ucc_connection_usage(std::string &msg)
 {
     msg.append(" \n\nUsage: ipsecd/connection create PARAM [VALUES]\n\n"
@@ -1423,6 +1475,8 @@ ipsec_ret ipsecd_ucc_help(int argc, const char **argv, std::string &message)
     {
         ipsec_ucc_connection_usage(message);
         ipsec_ucc_debug_usage(message);
+        ipsec_ucc_sa_usage(message);
+        ipsec_ucc_sp_usage(message);
         return ipsec_ret::OK;
     }
     else
