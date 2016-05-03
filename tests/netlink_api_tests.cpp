@@ -82,7 +82,7 @@ class FakeCalls
             return 0;
         }
 
-        int attr_parse_payload(const void* payload, size_t payload_len,
+        int attr_parse_payload_sa(const void* payload, size_t payload_len,
                                        mnl_attr_cb_t cb, void* data)
         {
             if(payload == nullptr || data == nullptr)
@@ -96,6 +96,23 @@ class FakeCalls
 
             nl_attrs[XFRMA_ALG_CRYPT] = (struct nlattr*)0x100;
             nl_attrs[XFRMA_ALG_AUTH] = (struct nlattr*)0x200;
+
+            return 0;
+        }
+
+        int attr_parse_payload_sp(const void* payload, size_t payload_len,
+                                       mnl_attr_cb_t cb, void* data)
+        {
+            if(payload == nullptr || data == nullptr)
+            {
+                return -1;
+            }
+
+            IPsecNetlinkAPI::CB_Data* userdata = (IPsecNetlinkAPI::CB_Data*)data;
+
+            struct nlattr** nl_attrs = (struct nlattr**)userdata->user_data;
+
+            nl_attrs[XFRMA_TMPL] = (struct nlattr*)0x100;
 
             return 0;
         }
@@ -149,6 +166,11 @@ class IPsecNetlinkAPI_EnO : public IPsecNetlinkAPI
         mnl_cb_t addr_mnl_parse_xfrm_sp()
         {
             return mnl_parse_xfrm_sp;
+        }
+
+        int call_mnl_parse_xfrm_sp(const struct nlmsghdr* nlh, void* data)
+        {
+            return mnl_parse_xfrm_sp(nlh, data);
         }
 };
 
@@ -1418,7 +1440,7 @@ TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSA)
     ///////////////////////////////////////
 
     ON_CALL(m_mnl_wrapper, attr_parse_payload(_, _, _, _))
-            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::attr_parse_payload));
+            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::attr_parse_payload_sa));
 
     EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(&nlh)))
             .WillOnce(Return(xfrm_sa));
@@ -2437,4 +2459,209 @@ TEST_F(IPsecNetlinkAPITestSuite, TestDelSPErrorInMsg)
     EXPECT_EQ(memcmp(&xfrm_spid.sel.daddr, &sp_id.m_selector.m_dst_addr, IP_ADDRESS_LENGTH), 0);
     EXPECT_EQ(xfrm_spid.sel.prefixlen_s, sp_id.m_selector.m_src_mask);
     EXPECT_EQ(xfrm_spid.sel.prefixlen_d, sp_id.m_selector.m_dst_mask);
+}
+
+/**
+ * Objective: Verify that parse xfrm sp will work as intended
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSP)
+{
+    FakeCalls fakeCalls;
+    IPsecNetlinkAPI::CB_Data cbdata;
+    struct nlmsghdr nlh;
+    ipsec_sp sp;
+    struct xfrm_userpolicy_info xfrm_sp[2] = { 0 };
+    struct nlattr* nl_attr_tmpl = (struct nlattr*)0x100;
+    struct xfrm_user_tmpl xfrm_tmpl;
+
+    ///////////////////////////////////////
+
+    cbdata.m_netlink_api = &m_netlink_api;
+    cbdata.user_data = &sp;
+
+    xfrm_sp[0].action = (uint8_t)ipsec_action::block;
+    xfrm_sp[0].dir = (uint8_t)ipsec_direction::outbound;
+    xfrm_sp[0].index = 1230;
+    xfrm_sp[0].priority = 9876;
+
+    xfrm_sp[0].sel.family = AF_INET;
+    xfrm_sp[0].sel.saddr.a4 = inet_addr("10.100.1.0");
+    xfrm_sp[0].sel.daddr.a4 = inet_addr("10.100.1.0");
+    xfrm_sp[0].sel.prefixlen_s = 24;
+    xfrm_sp[0].sel.prefixlen_d = 24;
+    xfrm_sp[0].sel.proto = 50;
+
+    xfrm_tmpl.family = AF_INET;
+    xfrm_tmpl.id.proto = 50;
+    xfrm_tmpl.mode = (uint8_t)ipsec_mode::tunnel;
+    xfrm_tmpl.reqid = 0x100;
+    xfrm_tmpl.id.daddr.a4 = inet_addr("10.100.1.1");
+    xfrm_tmpl.saddr.a4 = inet_addr("10.100.1.2");
+
+    nlh.nlmsg_len = sizeof(struct xfrm_userpolicy_info);
+    nlh.nlmsg_type = XFRM_MSG_GETPOLICY;
+
+    ///////////////////////////////////////
+
+    ON_CALL(m_mnl_wrapper, attr_parse_payload(_, _, _, _))
+            .WillByDefault(Invoke(&fakeCalls, &FakeCalls::attr_parse_payload_sp));
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(&nlh)))
+            .WillOnce(Return(&xfrm_sp));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_parse_payload(Eq(&xfrm_sp[1]), Eq(0),
+                            Eq(m_netlink_api.addr_parse_nested_attr()), NotNull()));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_get_payload(Eq(nl_attr_tmpl)))
+            .WillOnce(Return(&xfrm_tmpl));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_get_len(Eq(nl_attr_tmpl)))
+            .WillOnce(Return(sizeof(struct xfrm_user_tmpl)));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sp(&nlh, &cbdata), MNL_CB_OK);
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(sp.m_action, (ipsec_action)xfrm_sp[0].action);
+    EXPECT_EQ(sp.m_id.m_dir, (ipsec_direction)xfrm_sp[0].dir);
+    EXPECT_EQ(sp.m_index, xfrm_sp[0].index);
+    EXPECT_EQ(sp.m_priority, xfrm_sp[0].priority);
+
+    EXPECT_EQ(sp.m_id.m_selector.m_addr_family, xfrm_sp[0].sel.family);
+    EXPECT_EQ(memcmp(&sp.m_id.m_selector.m_src_addr, &xfrm_sp[0].sel.saddr, IP_ADDRESS_LENGTH), 0);
+    EXPECT_EQ(memcmp(&sp.m_id.m_selector.m_dst_addr, &xfrm_sp[0].sel.daddr, IP_ADDRESS_LENGTH), 0);
+    EXPECT_EQ(sp.m_id.m_selector.m_src_mask, xfrm_sp[0].sel.prefixlen_s);
+    EXPECT_EQ(sp.m_id.m_selector.m_dst_mask, xfrm_sp[0].sel.prefixlen_d);
+
+    ASSERT_EQ(sp.m_template_lists.size(), 1);
+
+    const ipsec_tmpl& tmpl = sp.m_template_lists[0];
+    EXPECT_EQ(tmpl.m_addr_family, xfrm_tmpl.family);
+    EXPECT_EQ(tmpl.m_protocol, xfrm_tmpl.id.proto);
+    EXPECT_EQ(tmpl.m_mode, (ipsec_mode)xfrm_tmpl.mode);
+    EXPECT_EQ(tmpl.m_req_id, xfrm_tmpl.reqid);
+    EXPECT_EQ(memcmp(&tmpl.m_src_ip, &xfrm_tmpl.saddr, IP_ADDRESS_LENGTH), 0);
+    EXPECT_EQ(memcmp(&tmpl.m_dst_ip, &xfrm_tmpl.id.daddr, IP_ADDRESS_LENGTH), 0);
+}
+
+/**
+ * Objective: Verify that parse xfrm sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSPDataNull)
+{
+    EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sp(nullptr, nullptr), MNL_CB_ERROR);
+}
+
+/**
+ * Objective: Verify that parse xfrm sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSPMsgTypeIncorrect)
+{
+    IPsecNetlinkAPI::CB_Data cbdata;
+    struct nlmsghdr nlh;
+    ipsec_sp sp;
+
+    ///////////////////////////////////////
+
+    cbdata.m_netlink_api = &m_netlink_api;
+    cbdata.user_data = &sp;
+
+    nlh.nlmsg_len = sizeof(struct xfrm_userpolicy_info);
+    nlh.nlmsg_type = XFRM_MSG_ALLOCSPI;
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sp(&nlh, &cbdata), MNL_CB_ERROR);
+}
+
+/**
+ * Objective: Verify that parse xfrm sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSPPayloadNull)
+{
+    IPsecNetlinkAPI::CB_Data cbdata;
+    struct nlmsghdr nlh;
+    ipsec_sp sp;
+
+    ///////////////////////////////////////
+
+    cbdata.m_netlink_api = &m_netlink_api;
+    cbdata.user_data = &sp;
+
+    nlh.nlmsg_len = sizeof(struct xfrm_userpolicy_info);
+    nlh.nlmsg_type = XFRM_MSG_GETPOLICY;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(&nlh)))
+            .WillOnce(Return(nullptr));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sp(&nlh, &cbdata), MNL_CB_ERROR);
+}
+
+/**
+ * Objective: Verify that parse xfrm sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSPParsePayloadFailed)
+{
+    IPsecNetlinkAPI::CB_Data cbdata;
+    struct nlmsghdr nlh;
+    ipsec_sp sp;
+    struct xfrm_userpolicy_info xfrm_sp[2] = { 0 };
+
+    ///////////////////////////////////////
+
+    cbdata.m_netlink_api = &m_netlink_api;
+    cbdata.user_data = &sp;
+
+    nlh.nlmsg_len = sizeof(struct xfrm_userpolicy_info);
+    nlh.nlmsg_type = XFRM_MSG_GETPOLICY;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(&nlh)))
+            .WillOnce(Return(xfrm_sp));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_parse_payload(Eq(&xfrm_sp[1]), Eq(0),
+                            Eq(m_netlink_api.addr_parse_nested_attr()), NotNull()))
+            .WillOnce(Return(-1));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sp(&nlh, &cbdata), MNL_CB_ERROR);
+}
+
+/**
+ * Objective: Verify that parse xfrm sp will return the correct error
+ **/
+TEST_F(IPsecNetlinkAPITestSuite, TestParseXFRMSPNullObjectParseSP)
+{
+    IPsecNetlinkAPI::CB_Data cbdata;
+    struct nlmsghdr nlh;
+    struct xfrm_userpolicy_info xfrm_sp[2] = { 0 };
+
+    ///////////////////////////////////////
+
+    cbdata.m_netlink_api = &m_netlink_api;
+    cbdata.user_data = nullptr;
+
+    nlh.nlmsg_len = sizeof(struct xfrm_userpolicy_info);
+    nlh.nlmsg_type = XFRM_MSG_GETPOLICY;
+
+    ///////////////////////////////////////
+
+    EXPECT_CALL(m_mnl_wrapper, nlmsg_get_payload(Eq(&nlh)))
+            .WillOnce(Return(xfrm_sp));
+
+    EXPECT_CALL(m_mnl_wrapper, attr_parse_payload(Eq(&xfrm_sp[1]), Eq(0),
+                            Eq(m_netlink_api.addr_parse_nested_attr()), NotNull()))
+            .WillOnce(Return(1));
+
+    ///////////////////////////////////////
+
+    EXPECT_EQ(m_netlink_api.call_mnl_parse_xfrm_sp(&nlh, &cbdata), MNL_CB_ERROR);
 }
