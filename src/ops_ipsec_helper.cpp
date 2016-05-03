@@ -240,7 +240,7 @@ namespace ipsecd_helper
         return ipsec_state::config_error;
     }
 
-    static bool char_to_hex(char alpha, uint8_t& hex)
+    bool char_to_hex(char alpha, uint8_t& hex)
     {
         static const uint8_t hexArr[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
                                           0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf };
@@ -284,7 +284,7 @@ namespace ipsecd_helper
         memset(key, 0, key_len * sizeof(uint8_t));
 
         uint32_t size = str.size();
-        for(uint32_t i = 0, j = 0; i < size && (i+1) < size && j < key_len; i+=2, j++)
+        for(uint32_t i = 0, j = 0; i < size && (i+1) < size && j < key_len; i+=2)
         {
             uint8_t key1 = 0;
             uint8_t key2 = 0;
@@ -296,6 +296,7 @@ namespace ipsecd_helper
             }
 
             key[j] = (key1 << 4) | key2;
+            j++;
         }
     }
 

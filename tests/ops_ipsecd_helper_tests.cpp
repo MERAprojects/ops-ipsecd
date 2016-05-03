@@ -269,3 +269,159 @@ TEST_F(IPsecdHelperTestSuite, TestIKEStateToString)
     EXPECT_EQ(ipsecd_helper::ike_state_to_ipsec_state("BLaH"),
               ipsec_state::config_error);
 }
+
+/**
+ * Objective: Verify that Char to Hex Value
+ **/
+TEST_F(IPsecdHelperTestSuite, TestCharToHex)
+{
+    uint8_t hex1 = 255;
+    uint8_t hex2 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex(102, hex1));
+    EXPECT_TRUE(ipsecd_helper::char_to_hex(48, hex1));
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex(97, hex1));
+    EXPECT_TRUE(ipsecd_helper::char_to_hex(57, hex1));
+
+    EXPECT_FALSE(ipsecd_helper::char_to_hex(103, hex1));
+    EXPECT_FALSE(ipsecd_helper::char_to_hex(47, hex1));
+
+    EXPECT_FALSE(ipsecd_helper::char_to_hex(96, hex1));
+    EXPECT_FALSE(ipsecd_helper::char_to_hex(58, hex1));
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('A', hex1));
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('a', hex2));
+    EXPECT_EQ(hex1, 0xa);
+    EXPECT_EQ(hex2, 0xa);
+    hex1 = 255;
+    hex2 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('B', hex1));
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('b', hex2));
+    EXPECT_EQ(hex1, 0xb);
+    EXPECT_EQ(hex2, 0xb);
+    hex1 = 255;
+    hex2 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('C', hex1));
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('c', hex2));
+    EXPECT_EQ(hex1, 0xc);
+    EXPECT_EQ(hex2, 0xc);
+    hex1 = 255;
+    hex2 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('D', hex1));
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('d', hex2));
+    EXPECT_EQ(hex1, 0xd);
+    EXPECT_EQ(hex2, 0xd);
+    hex1 = 255;
+    hex2 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('E', hex1));
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('e', hex2));
+    EXPECT_EQ(hex1, 0xe);
+    EXPECT_EQ(hex2, 0xe);
+    hex1 = 255;
+    hex2 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('F', hex1));
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('f', hex2));
+    EXPECT_EQ(hex1, 0xf);
+    EXPECT_EQ(hex2, 0xf);
+    hex1 = 255;
+    hex2 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('0', hex1));
+    EXPECT_EQ(hex1, 0x0);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('1', hex1));
+    EXPECT_EQ(hex1, 0x1);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('2', hex1));
+    EXPECT_EQ(hex1, 0x2);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('3', hex1));
+    EXPECT_EQ(hex1, 0x3);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('4', hex1));
+    EXPECT_EQ(hex1, 0x4);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('5', hex1));
+    EXPECT_EQ(hex1, 0x5);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('6', hex1));
+    EXPECT_EQ(hex1, 0x6);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('7', hex1));
+    EXPECT_EQ(hex1, 0x7);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('8', hex1));
+    EXPECT_EQ(hex1, 0x8);
+    hex1 = 255;
+
+    EXPECT_TRUE(ipsecd_helper::char_to_hex('9', hex1));
+    EXPECT_EQ(hex1, 0x9);
+    hex1 = 255;
+}
+
+/**
+ * Objective: Verify that Str to Hex will convert a string of hexadecimals to
+ * a byte array
+ **/
+TEST_F(IPsecdHelperTestSuite, TestStrToHex)
+{
+    std::string wrong_str_1 = "AABBCC_USIAA";
+    std::string wrong_str_2 = "A";
+    std::string right_str = "AABBCCDDEEFF00112233445566778899";
+    uint8_t base_test_arr[16] = { 0 };
+    uint8_t test_arr[16] = { 0 };
+    uint8_t arr_hex[] = { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 0x11,
+                          0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99 };
+    uint8_t wrong_arr_hex[] = { 0xAA, 0xBB, 0xCC, 0xAA };
+
+    ipsecd_helper::str_to_key(wrong_str_2, (char*)test_arr, 16);
+    EXPECT_EQ(memcmp(test_arr, base_test_arr, 16), 0);
+
+    ipsecd_helper::str_to_key(wrong_str_2, nullptr, 16);
+    EXPECT_EQ(memcmp(test_arr, base_test_arr, 16), 0);
+
+    ipsecd_helper::str_to_key(wrong_str_2, (char*)test_arr, 0);
+    EXPECT_EQ(memcmp(test_arr, base_test_arr, 16), 0);
+
+    ipsecd_helper::str_to_key(wrong_str_1, (char*)test_arr, 4);
+    EXPECT_EQ(memcmp(test_arr, wrong_arr_hex, 4), 0);
+
+    ipsecd_helper::str_to_key(right_str, (char*)test_arr, 16);
+    EXPECT_EQ(memcmp(test_arr, arr_hex, 16), 0);
+}
+
+/**
+ * Objective: Verify that Key(Hex) to Str will convert a byte array to string
+ **/
+TEST_F(IPsecdHelperTestSuite, TestKeyToStr)
+{
+    std::string ret = "123";
+    std::string right_str = "aabbccddeeff00112233445566778899";
+    uint8_t arr_hex[] = { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 0x11,
+                          0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99 };
+
+    ret = ipsecd_helper::key_to_str(nullptr, 16);
+    EXPECT_TRUE(ret.empty());
+    ret = "123";
+
+    ret = ipsecd_helper::key_to_str((char*)arr_hex, 0);
+    EXPECT_TRUE(ret.empty());
+
+    ret = ipsecd_helper::key_to_str((char*)arr_hex, 16);
+    EXPECT_EQ(ret.compare(right_str), 0);
+}

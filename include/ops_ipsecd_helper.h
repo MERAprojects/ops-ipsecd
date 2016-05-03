@@ -121,6 +121,17 @@ namespace ipsecd_helper
     extern ipsec_state ike_state_to_ipsec_state(const std::string ike_state);
 
     /**
+     * Converts a Char value to an Hexadecimal Value
+     *
+     * @param alpha Value to convert
+     *
+     * @param hex value in hexadecimal
+     *
+     * @return True if value could be converted
+     */
+    extern bool char_to_hex(char alpha, uint8_t& hex);
+
+    /**
      * Converts a string of hexadecimals to a byte array
      *
      * @param str String to convert
