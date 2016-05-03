@@ -867,6 +867,8 @@ ipsec_ret IPsecNetlinkAPI::del_sp(const ipsec_sp_id& sp_id)
     //Send Request
     if(m_mnl_wrapper.socket_sendto(nl_socket, nlh, nlh->nlmsg_len) <= 0)
     {
+        m_mnl_wrapper.socket_close(nl_socket);
+
         return ipsec_ret::SOCKET_SEND_FAILED;
     }
 
