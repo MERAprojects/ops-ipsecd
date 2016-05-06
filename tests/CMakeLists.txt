@@ -56,6 +56,7 @@ set (MAIN_SOURCES
         ${MAIN_SRC_DIR}/ConfigTaskCA.cpp
         ${MAIN_SRC_DIR}/ConfigTaskIKE.cpp
         ${MAIN_SRC_DIR}/IPsecNetlinkAPI.cpp
+        ${MAIN_SRC_DIR}/ErrorNotifySS.cpp
 )
 
 add_executable(${IPSEC-UT} ${TEST_SOURCES} ${MAIN_SOURCES})

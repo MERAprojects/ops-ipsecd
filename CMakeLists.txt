@@ -17,6 +17,7 @@ cmake_minimum_required (VERSION 2.8)
 
 # Use the OpenSwitch definition to fit with the internal data structures
 add_definitions(-DOPS)
+add_definitions(-DIPSEC_PIDDIR="/var/run")
 
 set (IPSEC ops-ipsecd)
 project (${IPSEC})
@@ -87,6 +88,7 @@ set (SOURCES
         ${SRC_DIR}/IPsecNetlinkAPI.cpp
         ${SRC_DIR}/LibmnlWrapper.cpp
         ${SRC_DIR}/Orchestrator.cpp
+        ${SRC_DIR}/ErrorNotifySS.cpp
 )
 
 # Rules to build ops-ipsecd
