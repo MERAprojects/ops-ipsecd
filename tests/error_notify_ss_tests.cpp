@@ -400,3 +400,142 @@ TEST_F(ErrorNotifySSTestSuite, TestRunErrorReceiverNotRunning)
 
     EXPECT_EQ(m_err_notify.call_run_error_receiver(), ipsec_ret::NOT_RUNNING);
 }
+
+/**
+ * Objective: Verify that Error Receiver will return the correct error code
+ * in case of failure
+ **/
+TEST_F(ErrorNotifySSTestSuite, TestRunErrorReceiverReadFailed)
+{
+    int conn = 100;
+    ssize_t size = sizeof(error_notify_msg_t);
+
+    ////////////////////////////////////////
+
+    m_err_notify.set_conn(conn);
+    m_err_notify.set_is_ready(true);
+    m_err_notify.set_is_running(true);
+
+    ////////////////////////////////////////
+
+    EXPECT_CALL(m_system_calls, s_read(Eq(conn), NotNull(), Eq(size)))
+            .WillOnce(Return(-1));
+
+    EXPECT_CALL(m_system_calls, s_close(Eq(conn)))
+            .WillOnce(Return(0));
+
+    ////////////////////////////////////////
+
+    EXPECT_EQ(m_err_notify.call_run_error_receiver(), ipsec_ret::ERR);
+}
+
+/**
+ * Objective: Verify that Process Error will parse the err msg
+ * correctly and send it to the class
+ **/
+TEST_F(ErrorNotifySSTestSuite, TestRunErrorReceiverProcessError)
+{
+    error_notify_msg_t err_msg = { 0 };
+
+    std::string id = "CC1";
+    std::string ip = "10.100.1.1:8080";
+    std::string conn_name = "IPsec";
+    std::string error = "Error In Test Message";
+
+    std::string msg = "";
+
+    msg += "Peer '" + id + "' with connection name '" +
+           conn_name + "' and address of '" + ip + "' encountered an error";
+
+    ////////////////////////////////////////
+
+    strncpy(err_msg.id, id.c_str(), 256);
+    strncpy(err_msg.ip, ip.c_str(), 60);
+    strncpy(err_msg.name, conn_name.c_str(), 64);
+    strncpy(err_msg.str, error.c_str(), 384);
+
+    err_msg.type = ERROR_NOTIFY_PEER_AUTH_FAILED;
+
+    ////////////////////////////////////////
+
+    m_err_notify.call_process_error(err_msg);
+
+    ////////////////////////////////////////
+
+    EXPECT_EQ(m_fake_listener.m_err.m_connection.compare(conn_name), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_error.compare(error), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_msg.compare(msg), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_error_event, ipsec_error_event::peer_auth_failed);
+}
+
+/**
+ * Objective: Verify that Process Error will parse the err msg
+ * correctly and send it to the class
+ **/
+TEST_F(ErrorNotifySSTestSuite, TestRunErrorReceiverProcessErrorNoID)
+{
+    error_notify_msg_t err_msg = { 0 };
+
+    std::string ip = "10.100.1.1:8080";
+    std::string conn_name = "IPsec";
+    std::string error = "Error In Test Message";
+
+    std::string msg = "";
+
+    msg += "Peer with connection name '" +
+           conn_name + "' and address of '" + ip + "' encountered an error";
+
+    ////////////////////////////////////////
+
+    strncpy(err_msg.ip, ip.c_str(), 60);
+    strncpy(err_msg.name, conn_name.c_str(), 64);
+    strncpy(err_msg.str, error.c_str(), 384);
+
+    err_msg.type = ERROR_NOTIFY_PEER_AUTH_FAILED;
+
+    ////////////////////////////////////////
+
+    m_err_notify.call_process_error(err_msg);
+
+    ////////////////////////////////////////
+
+    EXPECT_EQ(m_fake_listener.m_err.m_connection.compare(conn_name), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_error.compare(error), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_msg.compare(msg), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_error_event, ipsec_error_event::peer_auth_failed);
+}
+
+/**
+ * Objective: Verify that Process Error will parse the err msg
+ * correctly and send it to the class
+ **/
+TEST_F(ErrorNotifySSTestSuite, TestRunErrorReceiverProcessErrorNoIP)
+{
+    error_notify_msg_t err_msg = { 0 };
+
+    std::string conn_name = "IPsec";
+    std::string error = "Error In Test Message";
+
+    std::string msg = "";
+
+    msg += "Peer with connection name '" +
+           conn_name + "' encountered an error";
+
+    ////////////////////////////////////////
+
+    strncpy(err_msg.name, conn_name.c_str(), 64);
+    strncpy(err_msg.str, error.c_str(), 384);
+
+    err_msg.type = ERROR_NOTIFY_PEER_AUTH_FAILED;
+
+    ////////////////////////////////////////
+
+    m_err_notify.call_process_error(err_msg);
+
+    ////////////////////////////////////////
+
+    EXPECT_EQ(m_fake_listener.m_err.m_connection.compare(conn_name), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_error.compare(error), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_msg.compare(msg), 0);
+    EXPECT_EQ(m_fake_listener.m_err.m_error_event, ipsec_error_event::peer_auth_failed);
+}
