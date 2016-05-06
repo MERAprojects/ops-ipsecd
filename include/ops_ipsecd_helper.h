@@ -152,6 +152,15 @@ namespace ipsecd_helper
      * @return String of Hexadecimals
      */
     extern std::string key_to_str(const char* key, uint32_t keyLen);
+
+    /**
+     * Converts a StrongSWAN error code to an IPsec error event
+     *
+     * @param error StrongSWAN error code
+     *
+     * @return IPsec error event
+     */
+    extern ipsec_error_event ss_error_to_ipsec_error_event(int error);
 }
 
 #endif /* OPS_IPSECD_HELPER_H */

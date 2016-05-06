@@ -16,6 +16,11 @@
  */
 
 /**********************************
+*System Includes
+**********************************/
+#include <error_notify_msg.h>
+
+/**********************************
 *Local Includes
 **********************************/
 #include "ops_ipsecd_helper.h"
@@ -319,5 +324,63 @@ namespace ipsecd_helper
         }
 
         return buffer;
+    }
+
+    ipsec_error_event ss_error_to_ipsec_error_event(int error)
+    {
+        switch(error)
+        {
+            case ERROR_NOTIFY_LOCAL_AUTH_FAILED:
+                return ipsec_error_event::local_auth_failed;
+
+            case ERROR_NOTIFY_PEER_AUTH_FAILED:
+                return ipsec_error_event::peer_auth_failed;
+
+            case ERROR_NOTIFY_PARSE_ERROR_HEADER:
+            case ERROR_NOTIFY_PARSE_ERROR_BODY:
+                return ipsec_error_event::parse_error;
+
+            case ERROR_NOTIFY_RETRANSMIT_SEND_TIMEOUT:
+                return ipsec_error_event::retransmit_timeout;
+
+            case ERROR_NOTIFY_HALF_OPEN_TIMEOUT:
+                return ipsec_error_event::half_open_timeout;
+
+            case ERROR_NOTIFY_PROPOSAL_MISMATCH_IKE:
+                return ipsec_error_event::proposal_mismatch_ike;
+
+            case ERROR_NOTIFY_PROPOSAL_MISMATCH_CHILD:
+                return ipsec_error_event::proposal_mismatch_sa;
+
+            case ERROR_NOTIFY_TS_MISMATCH:
+                return ipsec_error_event::ts_mismatch;
+
+            case ERROR_NOTIFY_INSTALL_CHILD_SA_FAILED:
+                return ipsec_error_event::adding_sa_failed;
+
+            case ERROR_NOTIFY_INSTALL_CHILD_POLICY_FAILED:
+                return ipsec_error_event::adding_sp_failed;
+
+            case ERROR_NOTIFY_AUTHORIZATION_FAILED:
+                return ipsec_error_event::auth_failed;
+
+            case ERROR_NOTIFY_CERT_EXPIRED:
+                return ipsec_error_event::cert_expired;
+
+            case ERROR_NOTIFY_CERT_REVOKED:
+                return ipsec_error_event::cert_revoked;
+
+            case ERROR_NOTIFY_NO_ISSUER_CERT:
+                return ipsec_error_event::no_issuer_cert;
+
+            case ERROR_NOTIFY_RADIUS_NOT_RESPONDING:
+                return ipsec_error_event::radius_conn_error;
+
+            case ERROR_NOTIFY_UNIQUE_REPLACE:
+            case ERROR_NOTIFY_UNIQUE_KEEP:
+            case ERROR_NOTIFY_VIP_FAILURE:
+            default:
+                return ipsec_error_event::misc;
+        }
     }
 }

@@ -61,6 +61,7 @@ enum class ipsec_ret : int32_t
     SOCKET_CREATE_FAILED,
     SOCKET_SEND_FAILED,
     SOCKET_RECV_FAILED,
+    SOCKET_CONNECT_FAILED,
     ALLOC_FAILED,
     ADD_FAILED,
     DELETE_FAILED,
@@ -248,6 +249,26 @@ enum class ipsec_config_action : uint32_t
     add = 0,
     modify,
     remove
+};
+
+enum class ipsec_error_event : uint32_t
+{
+    misc = 0,
+    auth_failed,
+    local_auth_failed,
+    peer_auth_failed,
+    proposal_mismatch_ike,
+    proposal_mismatch_sa,
+    adding_sa_failed,
+    adding_sp_failed,
+    cert_expired,
+    cert_revoked,
+    no_issuer_cert,
+    retransmit_timeout,
+    half_open_timeout,
+    radius_conn_error,
+    ts_mismatch,
+    parse_error
 };
 
 /**********************************
@@ -744,6 +765,14 @@ struct ipsec_sp
     ipsec_action m_action       = ipsec_action::allow;
     uint32_t m_priority         = 0;
     std::vector<ipsec_tmpl> m_template_lists;
+};
+
+struct ipsec_error
+{
+    std::string m_connection = "";
+    std::string m_msg = "";
+    std::string m_error = "";
+    ipsec_error_event m_error_event = ipsec_error_event::misc;
 };
 
 #endif
