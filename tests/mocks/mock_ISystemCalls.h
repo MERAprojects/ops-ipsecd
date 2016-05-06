@@ -28,4 +28,12 @@ class MockISystemCalls : public ISystemCalls {
       int(const char *pathname, int flags));
   MOCK_METHOD2(s_fstat,
       int(int fd, struct stat *buf));
+  MOCK_METHOD3(s_connect,
+      int(int sockfd, const struct sockaddr *addr, socklen_t addrlen));
+  MOCK_METHOD3(s_socket,
+      int(int domain, int type, int protocol));
+  MOCK_METHOD3(s_read,
+      ssize_t(int fd, void *buf, size_t count));
+  MOCK_METHOD1(s_close,
+      int(int fd));
 };

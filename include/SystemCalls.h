@@ -65,6 +65,27 @@ class SystemCalls : public ISystemCalls
          * @copydoc ISystemCalls::s_fstat
          */
         int s_fstat(int fd, struct stat *buf) override;
+
+        /**
+         * @copydoc ISystemCalls::s_connect
+         */
+        int s_connect(int sockfd, const struct sockaddr *addr,
+                      socklen_t addrlen) override;
+
+        /**
+         * @copydoc ISystemCalls::s_socket
+         */
+        int s_socket(int domain, int type, int protocol) override;
+
+        /**
+         * @copydoc ISystemCalls::s_read
+         */
+        ssize_t s_read(int fd, void *buf, size_t count) override;
+
+        /**
+         * @copydoc ISystemCalls::s_close
+         */
+        int s_close(int fd) override;
 };
 
 #endif /* ISYSTEMCALLS_H */

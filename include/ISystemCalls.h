@@ -27,6 +27,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 
 /**********************************
 *Local Includes
@@ -69,6 +70,28 @@ class ISystemCalls
          * Refer to http://linux.die.net/man/2/fstat
          */
         virtual int s_fstat(int fd, struct stat *buf) = 0;
+
+        /**
+         * Refer to http://linux.die.net/man/2/connect
+         */
+        virtual int s_connect(int sockfd, const struct sockaddr *addr,
+                              socklen_t addrlen) = 0;
+
+        /**
+         * Refer to http://linux.die.net/man/2/socket
+         */
+        virtual int s_socket(int domain, int type, int protocol) = 0;
+
+        /**
+         * Refer to http://linux.die.net/man/2/read
+         */
+        virtual ssize_t s_read(int fd, void *buf, size_t count) = 0;
+
+        /**
+         * Refer to http://linux.die.net/man/2/close
+         */
+        virtual int s_close(int fd) = 0;
 };
+
 
 #endif /* ISYSTEMCALLS_H */

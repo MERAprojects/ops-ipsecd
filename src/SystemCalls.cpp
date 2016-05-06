@@ -55,3 +55,25 @@ int SystemCalls::s_fstat(int fd, struct stat *buf)
 {
     return fstat(fd, buf);
 }
+
+
+int SystemCalls::s_connect(int sockfd, const struct sockaddr *addr,
+                           socklen_t addrlen)
+{
+    return connect(sockfd, addr, addrlen);
+}
+
+int SystemCalls::s_socket(int domain, int type, int protocol)
+{
+    return socket(domain, type, protocol);
+}
+
+ssize_t SystemCalls::s_read(int fd, void *buf, size_t count)
+{
+    return read(fd, buf, count);
+}
+
+int SystemCalls::s_close(int fd)
+{
+    return close(fd);
+}
