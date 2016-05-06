@@ -18,6 +18,7 @@
 *System Includes
 **********************************/
 #include <gtest/gtest.h>
+#include <error_notify_msg.h>
 
 /**********************************
 *Local Includes
@@ -424,4 +425,67 @@ TEST_F(IPsecdHelperTestSuite, TestKeyToStr)
 
     ret = ipsecd_helper::key_to_str((char*)arr_hex, 16);
     EXPECT_EQ(ret.compare(right_str), 0);
+}
+
+/**
+ * Objective: Verify that Cipher to String will return the correct strings
+ **/
+TEST_F(IPsecdHelperTestSuite, TestSSErrorToIPsecErrorEvent)
+{
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_LOCAL_AUTH_FAILED),
+                 ipsec_error_event::local_auth_failed);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_PEER_AUTH_FAILED),
+                 ipsec_error_event::peer_auth_failed);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_PARSE_ERROR_HEADER),
+                 ipsec_error_event::parse_error);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_PARSE_ERROR_BODY),
+                 ipsec_error_event::parse_error);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_RETRANSMIT_SEND_TIMEOUT),
+                 ipsec_error_event::retransmit_timeout);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_HALF_OPEN_TIMEOUT),
+                 ipsec_error_event::half_open_timeout);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKE),
+                 ipsec_error_event::proposal_mismatch_ike);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_PROPOSAL_MISMATCH_CHILD),
+                 ipsec_error_event::proposal_mismatch_sa);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_TS_MISMATCH),
+                 ipsec_error_event::ts_mismatch);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_INSTALL_CHILD_SA_FAILED),
+                 ipsec_error_event::adding_sa_failed);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_INSTALL_CHILD_POLICY_FAILED),
+                 ipsec_error_event::adding_sp_failed);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_AUTHORIZATION_FAILED),
+                 ipsec_error_event::auth_failed);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_CERT_EXPIRED),
+                 ipsec_error_event::cert_expired);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_CERT_REVOKED),
+                 ipsec_error_event::cert_revoked);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_NO_ISSUER_CERT),
+                 ipsec_error_event::no_issuer_cert);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_RADIUS_NOT_RESPONDING),
+                 ipsec_error_event::radius_conn_error);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_UNIQUE_REPLACE),
+                 ipsec_error_event::misc);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_UNIQUE_KEEP),
+                 ipsec_error_event::misc);
+
+    EXPECT_EQ(ipsecd_helper::ss_error_to_ipsec_error_event(ERROR_NOTIFY_VIP_FAILURE),
+                 ipsec_error_event::misc);
 }
