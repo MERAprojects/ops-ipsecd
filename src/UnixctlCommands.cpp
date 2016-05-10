@@ -383,38 +383,6 @@ static bool ipsec_ucc_str_to_ipv4(std::string ip_str, in_addr_t& ipv4_addr)
     return false;
 }
 
-static bool ipsec_ucc_str_to_ipsec_direction(std::string str_dir,
-        ipsec_direction& direction)
-{
-    bool result = false;
-    const int elements = 3;
-
-    /*Valid values for direction key word*/
-    const std::string str_values[] =
-    {
-        "in",
-        "out",
-        "fwd"
-     };
-    const ipsec_direction all_dir_values[] =
-    {
-        ipsec_direction::inbound,
-        ipsec_direction::outbound,
-        ipsec_direction::forward
-    };
-    for (int idx = 0; idx < elements ; idx++)
-    {
-        if (str_dir.compare(str_values[idx]) == 0)
-        {
-            result = true;
-            direction = all_dir_values[idx];
-            break;
-        }
-    }
-    return result;
-
-}
-
 ipsec_ret ipsec_ucc_get_sp_subcmd(int argc, const char **argv,
         int& c_index, ipsec_sp& sp, ipsec_sp_id& sp_id, DebugMode *debugger)
 {
@@ -470,7 +438,7 @@ ipsec_ret ipsec_ucc_get_sp_subcmd(int argc, const char **argv,
             {
                 case DIRECTION:
                     next_str.assign(argv[index + 1]);
-                    if(!ipsec_ucc_str_to_ipsec_direction(next_str,
+                    if(!ipsecd_helper::str_to_ipsec_direction(next_str,
                                 sp_id.m_dir))
                     {
                         return result;
@@ -705,7 +673,7 @@ ipsec_ret ipsec_ucc_delete_sp_subcmd(int argc, const char **argv,
             {
                 case DIRECTION:
                     next_str.assign(argv[index + 1]);
-                    if(!ipsec_ucc_str_to_ipsec_direction(next_str,
+                    if(!ipsecd_helper::str_to_ipsec_direction(next_str,
                                 sp_id.m_dir))
                     {
                         return result;
@@ -1930,7 +1898,7 @@ ipsec_ret ipsecd_ucc_sp(int argc, const char **argv, std::string &message)
                     break;
                 case DIRECTION:
                     next_str.assign(argv[c_index + 1]);
-                    if(!ipsec_ucc_str_to_ipsec_direction(next_str,
+                    if(!ipsecd_helper::str_to_ipsec_direction(next_str,
                                 sp.m_id.m_dir))
                     {
                         goto input_error;

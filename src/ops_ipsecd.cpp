@@ -38,6 +38,13 @@
 #include "LibmnlWrapper.h"
 #include "IPsecNetlinkAPI.h"
 #include "ViciStreamParser.h"
+#include "IPsecOvsdb.h"
+#include "IPsecOvsdbIDLWrapper.h"
+
+extern "C"{
+#include <poll-loop.h>
+}
+
 
 /**
 * Global variable set to true while the program is running
@@ -88,6 +95,9 @@ int main( int argc, const char* argv[] )
     ViciStreamParser vici_stream_parser(vici_api);
     IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, mapFile);
     IPsecNetlinkAPI ipsec_netlink(mnl_wrapper);
+    //TODO: include ovsdb into orchestrator class
+    IPsecOvsdbIDLWrapper idl_wrapper;
+    IPsecOvsdb ovsdb_control(idl_wrapper);
 
     /////////////////////////
     //Create Worker Classes
@@ -98,12 +108,17 @@ int main( int argc, const char* argv[] )
     //Create Orchestrator Control Class
     Orchestrator ipsec_orchest(ikeViciApi, config_queue, stat_pub);
 
+    //Set Signal
+    ipsecd_signal_set_mask();
+
     /////////////////////////
     //Initialize Orchestrator
     if (ipsec_orchest.initialize() != ipsec_ret::OK)
     {
         exit(EXIT_FAILURE);
     }
+
+    ovsdb_control.initialize();
 
     /////////////////////////
     //Create Debug Class
@@ -112,9 +127,19 @@ int main( int argc, const char* argv[] )
 
     while(g_IsRunning && debugger->uccIsRunning())
     {
+        ovsdb_control.run();
         debugger->ucc_run();
         usleep(250 * 1000);
+        ovsdb_control.wait();
         debugger->ucc_wait();
+        if (g_IsRunning && debugger->uccIsRunning())
+        {
+            poll_block();
+        }
+        else
+        {
+            poll_immediate_wake();
+        }
     }
     debugger->ucc_destroy();
 

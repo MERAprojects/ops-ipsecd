@@ -383,4 +383,150 @@ namespace ipsecd_helper
                 return ipsec_error_event::misc;
         }
     }
+
+    const char* direction_to_str(ipsec_direction direction)
+    {
+        switch(direction)
+        {
+            case ipsec_direction::inbound:
+                return "in";
+            case ipsec_direction::outbound:
+                return "out";
+            case ipsec_direction::forward:
+                return "fwd";
+            default:
+                return "";
+        }
+    }
+
+    void get_src_selector(ipsec_selector selector, std::string& src_ip)
+    {
+        char ip_src[INET_ADDRSTRLEN];
+        struct sockaddr_in add;
+        /*set human readable IP number into str*/
+        switch(selector.m_addr_family)
+        {
+            case AF_INET:
+                add.sin_addr.s_addr = selector.m_src_addr.m_ipv4;
+                inet_ntop(AF_INET, &(add.sin_addr), ip_src, INET_ADDRSTRLEN);
+                src_ip.assign(ip_src);
+            case AF_INET6:
+                inet_ntop(AF_INET6, &(selector.m_src_addr.m_ipv6),
+                        ip_src, INET_ADDRSTRLEN);
+                 src_ip.assign(ip_src);
+            default:
+                src_ip.assign("");
+        }
+    }
+
+    void get_dst_selector(ipsec_selector selector, std::string& dst_ip)
+    {
+        char ip_dst[INET_ADDRSTRLEN];
+        struct sockaddr_in add;
+        /*set human readable IP number into str*/
+        switch(selector.m_addr_family)
+        {
+            case AF_INET:
+                add.sin_addr.s_addr = selector.m_dst_addr.m_ipv4;
+                inet_ntop(AF_INET, &(add.sin_addr), ip_dst, INET_ADDRSTRLEN);
+                dst_ip.assign(ip_dst);
+            case AF_INET6:
+                inet_ntop(AF_INET6, &(selector.m_dst_addr.m_ipv6),
+                        ip_dst, INET_ADDRSTRLEN);
+                dst_ip.assign(ip_dst);
+            default:
+                dst_ip.assign("");
+        }
+    }
+
+    void set_str_to_ip_addr_t(std::string ip_number, uint16_t family,
+            ip_addr_t& address)
+    {
+        struct sockaddr_in add;
+        /*set human readable IP number into str*/
+        switch(family)
+        {
+            case AF_INET:
+                inet_pton(AF_INET, ip_number.c_str(), &(add.sin_addr));
+                address.m_ipv4 = (in_addr_t)add.sin_addr.s_addr;
+                break;
+            case AF_INET6:
+                inet_pton(AF_INET6, ip_number.c_str(),
+                        &(address.m_ipv6));
+                break;
+            default:
+                break;
+        }
+    }
+
+    bool set_dst_selector(std::string dst_ip, ipsec_selector& selector)
+    {
+        struct sockaddr_in add;
+        /*set human readable IP number into str*/
+        switch(selector.m_addr_family)
+        {
+            case AF_INET:
+                inet_pton(AF_INET, dst_ip.c_str(), &(add.sin_addr));
+                selector.m_dst_addr.m_ipv4 = (in_addr_t)add.sin_addr.s_addr;
+                return true;
+            case AF_INET6:
+                inet_pton(AF_INET6, dst_ip.c_str(),
+                        &(selector.m_dst_addr.m_ipv6));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool set_src_selector(std::string src_ip, ipsec_selector& selector)
+    {
+        struct sockaddr_in add;
+        /*set human readable IP number into str*/
+        switch(selector.m_addr_family)
+        {
+            case AF_INET:
+                inet_pton(AF_INET, src_ip.c_str(), &(add.sin_addr));
+                selector.m_src_addr.m_ipv4 = (in_addr_t)add.sin_addr.s_addr;
+                return true;
+            case AF_INET6:
+                inet_pton(AF_INET6, src_ip.c_str(),
+                        &(selector.m_src_addr.m_ipv6));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool str_to_ipsec_direction(std::string str_dir,
+            ipsec_direction& direction)
+    {
+        bool result = false;
+        const int elements = 3;
+
+        /*Valid values for direction key word*/
+        const std::string str_values[] =
+        {
+            "in",
+            "out",
+            "fwd"
+         };
+        const ipsec_direction all_dir_values[] =
+        {
+            ipsec_direction::inbound,
+            ipsec_direction::outbound,
+            ipsec_direction::forward
+        };
+        for (int idx = 0; idx < elements ; idx++)
+        {
+            if (str_dir.compare(str_values[idx]) == 0)
+            {
+                result = true;
+                direction = all_dir_values[idx];
+                return result;
+            }
+        }
+        return result;
+
+    }
+
 }

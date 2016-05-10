@@ -272,6 +272,19 @@ enum class ipsec_error_event : uint32_t
     parse_error
 };
 
+enum class ipsec_events : uint32_t
+{
+    sa_created = 0,
+    sa_deleted,
+    sa_modified,
+    sp_created,
+    sp_deleted,
+    sp_modified,
+    ike_policy_created,
+    ike_policy_deleted,
+    ike_policy_modified
+};
+
 /**********************************
 *Unions
 **********************************/

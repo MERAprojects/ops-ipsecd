@@ -89,6 +89,8 @@ set (SOURCES
         ${SRC_DIR}/LibmnlWrapper.cpp
         ${SRC_DIR}/Orchestrator.cpp
         ${SRC_DIR}/ErrorNotifySS.cpp
+        ${SRC_DIR}/IPsecOvsdbIDLWrapper.cpp
+        ${SRC_DIR}/IPsecOvsdb.cpp
 )
 
 # Rules to build ops-ipsecd

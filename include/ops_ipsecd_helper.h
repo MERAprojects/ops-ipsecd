@@ -161,6 +161,82 @@ namespace ipsecd_helper
      * @return IPsec error event
      */
     extern ipsec_error_event ss_error_to_ipsec_error_event(int error);
+
+    /**
+     * Converts a direction Enum to String
+     *
+     * @param direction Direction Type
+     *
+     * @return Enum type to String
+     */
+    extern const char* direction_to_str(ipsec_direction direction);
+
+    /**
+     * Get the src_ip from selector in human-readable IP address format
+     *
+     * @param selector Selector type
+     *
+     * @param src_ip A human-readable IP address format
+     */
+    extern void get_src_selector(ipsec_selector selector, std::string& src_ip);
+
+    /**
+     * Get the dst_ip from selector in human-readable IP address format
+     *
+     * @param selector Selector type
+     *
+     * @param dst_ip A human-readable IP address format
+     */
+    extern void get_dst_selector(ipsec_selector selector, std::string& dst_ip);
+
+    /**
+     * Set direction Enum from string
+     *
+     * @param str_dir Direction on string format
+     *
+     * @param direction Enum direction Type to modify
+     *
+     * @return true if str_dir is a valid string value and direction has
+     * been modified
+     */
+    extern bool str_to_ipsec_direction(std::string str_dir,
+            ipsec_direction& direction);
+
+    /**
+     * Set destination selector value from string
+     *
+     * @param dst_ip IP number on human-readable format
+     *
+     * @param selector Selector to be modified
+     *
+     * @return true if Selector has been modified, false if m_addr_family
+     * is not defined
+     */
+    extern bool set_dst_selector(std::string dst_ip, ipsec_selector& selector);
+
+    /**
+     * Set src_ip selector value from string
+     *
+     * @param src_ip IP number on human-readable format
+     *
+     * @param selector Selector to be modified
+     *
+     * @return true if Selector has been modified, false if m_addr_family
+     * is not defined
+     */
+    extern bool set_src_selector(std::string src_ip, ipsec_selector& selector);
+
+    /**
+     * Set ip address from string
+     *
+     * @param ip_addr_t Type
+     *
+     * @param ip_number string with IP number on human-readable format
+     *
+     * @param family Type
+     */
+    extern void set_str_to_ip_addr_t(std::string ip_number,uint16_t family,
+            ip_addr_t& address);
 }
 
 #endif /* OPS_IPSECD_HELPER_H */
