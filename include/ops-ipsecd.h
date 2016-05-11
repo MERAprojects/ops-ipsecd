@@ -65,6 +65,7 @@ enum class ipsec_ret : int32_t
     ALLOC_FAILED,
     ADD_FAILED,
     DELETE_FAILED,
+    MODIFY_FAILED,
     START_FAILED,
     STOP_FAILED,
     INVALID_API,

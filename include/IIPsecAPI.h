@@ -55,6 +55,15 @@ class IIPsecAPI
         virtual ipsec_ret add_sa(const ipsec_sa& sa) = 0;
 
         /**
+         * Modifies a SA in the IPsec Kernel Module
+         *
+         * @param sa SA to modify
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret modify_sa(const ipsec_sa& sa) = 0;
+
+        /**
          * Gets a SA from the IPsec Kernel Module
          *
          * @param spi SPI of the SA to search for
@@ -82,6 +91,15 @@ class IIPsecAPI
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
         virtual ipsec_ret add_sp(const ipsec_sp& sp) = 0;
+
+        /**
+         * Modifies an SP to the IPsec Kernel Module
+         *
+         * @param sp SP to Modify
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret modify_sp(const ipsec_sp& sp) = 0;
 
         /**
          * Gets a SP from the IPsec Kernel Module
