@@ -34,20 +34,37 @@
  */
 class ConfigTaskSA : public ConfigTask
 {
+    private:
+
+        /**
+         * IPsec SA
+         */
+        ipsec_sa m_sa;
+
     public:
 
         /**
          * Default Constructor
          *
          * @param config_action Configuration Action
+         *
+         * @param sa IPsec SA
          */
-        ConfigTaskSA(ipsec_config_action config_action);
+        ConfigTaskSA(ipsec_config_action config_action,
+                     const ipsec_sa& sa);
 
         /**
          * Default Destructor
          */
         virtual ~ConfigTaskSA();
 
+        /**
+         * Gets IPsec SA
+         */
+        inline const ipsec_sa& get_sa() const
+        {
+            return m_sa;
+        }
 };
 
 #endif

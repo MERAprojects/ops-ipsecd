@@ -27,8 +27,9 @@
 /**********************************
 *Function Declarations
 **********************************/
-ConfigTaskSP::ConfigTaskSP(ipsec_config_action config_action)
+ConfigTaskSP::ConfigTaskSP(ipsec_config_action config_action, const ipsec_sp& sp)
     : ConfigTask(ipsec_type::sp, config_action)
+    , m_sp(sp)
 {
 }
 

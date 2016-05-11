@@ -34,20 +34,37 @@
  */
 class ConfigTaskSP : public ConfigTask
 {
+    private:
+
+        /**
+         * IPsec SP
+         */
+        ipsec_sp m_sp;
+
     public:
 
         /**
          * Default Constructor
          *
          * @param config_action Configuration Action
+         *
+         * @param sp IPsec SP
          */
-        ConfigTaskSP(ipsec_config_action config_action);
+        ConfigTaskSP(ipsec_config_action config_action,
+                     const ipsec_sp& sp);
 
         /**
          * Default Destructor
          */
         virtual ~ConfigTaskSP();
 
+        /**
+         * Gets IPsec SP
+         */
+        inline const ipsec_sp& get_sp() const
+        {
+            return m_sp;
+        }
 };
 
 #endif
