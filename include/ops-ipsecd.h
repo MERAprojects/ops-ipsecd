@@ -700,79 +700,256 @@ struct ipsec_stat_pub
     }
 };
 
+/**
+ * IPsec SA/SP Stats
+ */
 struct ipsec_sa_sp_stats
 {
+    /**
+     * Size of the Replay Window for the IPsec Packets
+     */
     uint32_t m_replay_window        = 0;
+
+    /**
+     * Packets Replayed
+     */
     uint32_t m_replay               = 0;
+
+    /**
+     * Packets that failed integrity
+     */
     uint32_t m_integrity_failed     = 0;
 };
 
+/**
+ * Lifetime stats for SAs/SPs
+ */
 struct ipsec_sa_sp_lifetime_current
 {
+    /**
+     * When the SA/SP was added
+     */
     uint64_t m_add_time     = 0;
+
+    /**
+     * The time that has pass since the SA/SP started been used
+     */
     uint64_t m_use_time     = 0;
+
+    /**
+     * Bytes processed by the SA/SP
+     */
     uint64_t m_bytes        = 0;
+
+    /**
+     * Packets processed by the SA/SP
+     */
     uint64_t m_packets      = 0;
 };
 
+/**
+ * SA ID struct
+ */
 struct ipsec_sa_id
 {
+    /**
+     * Address Family of the SA
+     */
     uint16_t m_addr_family  = 0;
+
+    /**
+     * Source IP Address
+     */
     ip_addr_t m_src_ip      = { 0 };
+
+    /**
+     * Destination IP Address
+     */
     ip_addr_t m_dst_ip      = { 0 };
+
+    /**
+     * Protocol use in the SA (ESP/AH)
+     */
     uint8_t m_protocol      = 0;
+
+    /**
+     * SPI Identifier
+     */
     uint32_t m_spi          = 0;
 };
 
+/**
+ * Crypt/Auth Key details
+ */
 struct ipsec_key
 {
+    /**
+     * Name of the Cipher/Hash (aes, sha1, ...)
+     */
     std::string m_name      = "";
+
+    /**
+     * Key for the Cipher/Hash
+     */
     std::string m_key       = "";
 };
 
+/**
+ * IPsec SA
+ */
 struct ipsec_sa
 {
+    /**
+     * IPsec Mode Type
+     */
     ipsec_mode m_mode        = ipsec_mode::transport;
+
+    /**
+     * Also known as the SP ID, is use to link against an SP
+     */
     uint32_t m_req_id        = 0;
+
+    /**
+     * Flags for the SA
+     */
     uint8_t m_flags          = 0;
+
+    /**
+     * Replay window for IPsec Packets
+     */
     uint32_t m_replay_window = 0;
 
+    /**
+     * True if the SA has a Crypt Key
+     */
     bool m_crypt_set         = false;
+
+    /**
+     * Crypt Key Details
+     */
     ipsec_key m_crypt;
 
+    /**
+     * True if the SA has an Auth Key
+     */
     bool m_auth_set          = false;
+
+    /**
+     * Auth Key Details
+     */
     ipsec_key m_auth;
 
+    /**
+     * SA ID struct
+     */
     ipsec_sa_id m_id;
+
+    /**
+     * Traffic Selector for the SA
+     */
     ipsec_selector m_selector;
+
+    /**
+     * Current Lifetime details for the SA
+     */
     ipsec_sa_sp_lifetime_current m_lifetime_current;
+
+    /**
+     * Stats for the SA
+     */
     ipsec_sa_sp_stats m_stats;
 };
 
+/**
+ * IPsec Template List
+ */
 struct ipsec_tmpl
 {
+    /**
+     * Address Family of Template List
+     */
     uint16_t m_addr_family  = 0;
+
+    /**
+     * Source IP
+     */
     ip_addr_t m_src_ip      = { 0 };
+
+    /**
+     * Destination IP
+     */
     ip_addr_t m_dst_ip      = { 0 };
+
+    /**
+     * IPsec Protocol (AH\ESP)
+     */
     uint8_t m_protocol      = 0;
+
+    /**
+     * ID use by the SA to match an SP
+     */
     uint32_t m_req_id       = 0;
+
+    /**
+     * IPsec Mode
+     */
     ipsec_mode m_mode       = ipsec_mode::transport;;
 };
 
+/**
+ * IPsec SP
+ */
 struct ipsec_sp
 {
+    /**
+     * ID of the SP
+     */
     ipsec_sp_id m_id;
+
+    /**
+     * Index of the SP
+     */
     uint32_t m_index            = 0;
+
+    /**
+     * Action to take for packets matching the Policy
+     */
     ipsec_action m_action       = ipsec_action::allow;
+
+    /**
+     * Priority of the Policy
+     */
     uint32_t m_priority         = 0;
+
+    /**
+     * Template Lists in this SPD
+     */
     std::vector<ipsec_tmpl> m_template_lists;
 };
 
+/**
+ * IPsec Error
+ */
 struct ipsec_error
 {
+    /**
+     * Name of the IPsec Connection
+     */
     std::string m_connection = "";
+
+    /**
+     * Additional details
+     */
     std::string m_msg = "";
+
+    /**
+     * Error Message
+     */
     std::string m_error = "";
+
+    /**
+     * Type of error
+     */
     ipsec_error_event m_error_event = ipsec_error_event::misc;
 };
 
