@@ -28,12 +28,13 @@
 **********************************/
 #include "ops-ipsecd.h"
 #include "ConfigTask.h"
+#include "ConfigQueue.h"
 #include "ConfigTaskSA.h"
 #include "ConfigTaskSP.h"
 #include "ConfigTaskCA.h"
 #include "ConfigTaskIKE.h"
 #include "mocks/mock_IIKEAPI.h"
-#include "ConfigQueue.h"
+#include "mocks/mock_IIPsecAPI.h"
 
 /**********************************
 *Using
@@ -52,8 +53,8 @@ using ::testing::SetArgPointee;
 class ConfigQueue_EnO : public ConfigQueue
 {
     public:
-        ConfigQueue_EnO(IIKEAPI& ike_api)
-            : ConfigQueue(ike_api)
+        ConfigQueue_EnO(IIKEAPI& ike_api, IIPsecAPI& ipsec_api)
+            : ConfigQueue(ike_api, ipsec_api)
         {
         }
 
@@ -83,10 +84,11 @@ class ConfigQueueTestSuite : public Test
     public:
 
         MockIIKEAPI m_ike_api;
+        MockIIPsecAPI m_ipsec_api;
         ConfigQueue_EnO m_config_queue;
 
         ConfigQueueTestSuite()
-            : m_config_queue(m_ike_api)
+            : m_config_queue(m_ike_api, m_ipsec_api)
         {
         }
 

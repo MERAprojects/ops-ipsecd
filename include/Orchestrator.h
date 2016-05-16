@@ -31,6 +31,8 @@
 *Forward Decl
 **********************************/
 class IIKEAPI;
+class IIPsecAPI;
+class IConfigQueue;
 
 class Orchestrator
 {
@@ -40,18 +42,33 @@ class Orchestrator
         Orchestrator(const Orchestrator& orig) = delete;
 
     protected:
+
         /**
-         * IKEViciApi object reference
+         * IKE API Interface
          * */
-        IIKEAPI& m_ikeapi;
+        IIKEAPI& m_ike_api;
+
+        /**
+         * Config Queue Interface
+         */
+        IConfigQueue& m_config_queue;
+
+        /**
+         * Determines if the class was successfully initialized
+         */
+        bool m_is_ready = false;
 
     public:
         /**
          * Orchestrator Constructor
          *
-         * @param ikeapi IKE Vici API main Object
+         * @param ike_api IKE API interface
+         *
+         * @param ipsec_api IPsec API Interface
+         *
+         * @param config_queue Config Queue Interface
          */
-        Orchestrator(IIKEAPI& ikeapi);
+        Orchestrator(IIKEAPI& ike_api, IConfigQueue& config_queue);
 
         /**
          * Initialize main method for ops-ipsecd

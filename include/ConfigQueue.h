@@ -30,12 +30,15 @@
 /**********************************
 *Local Includes
 **********************************/
+#include "IIPsecAPI.h"
 #include "ops-ipsecd.h"
 #include "IConfigQueue.h"
 
 /**********************************
 *Forward Decl
 **********************************/
+class IIKEAPI;
+class IIPsecAPI;
 class ConfigTask;
 class ConfigTaskSA;
 class ConfigTaskSP;
@@ -53,6 +56,11 @@ class ConfigQueue : public IConfigQueue
          * IKE API Interface
          */
         IIKEAPI& m_ike_api;
+
+        /**
+         * IPsec API Interface
+         */
+        IIPsecAPI& m_ipsec_api;
 
         /**
          * Configuration Dispatcher Thread
@@ -115,14 +123,30 @@ class ConfigQueue : public IConfigQueue
          */
         void ca_config_task(const ConfigTaskCA* task);
 
+        /**
+         * Execute IPsec SA Configuration task
+         *
+         * @param task SA Configuration Task
+         */
+        void sa_config_task(const ConfigTaskSA* task);
+
+        /**
+         * Execute IPsec SP Configuration task
+         *
+         * @param task SP Configuration Task
+         */
+        void sp_config_task(const ConfigTaskSP* task);
+
     public:
 
         /**
          * Default Constructor
          *
          * @param ike_api IKE API Interface
+         *
+         * @param netlink_api IPsec API Interface
          */
-        ConfigQueue(IIKEAPI& ike_api);
+        ConfigQueue(IIKEAPI& ike_api, IIPsecAPI& ipsec_api);
 
         /**
          * Default Destructor

@@ -28,6 +28,11 @@
 **********************************/
 #include "ops-ipsecd.h"
 
+/**********************************
+*Forward Decl
+**********************************/
+class ConfigTask;
+
 /**
  * Base Interface Class for Configuration Queue
  */

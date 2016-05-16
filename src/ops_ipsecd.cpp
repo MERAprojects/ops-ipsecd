@@ -31,6 +31,7 @@
 #include "MapFile.h"
 #include "DebugMode.h"
 #include "IKEViciAPI.h"
+#include "ConfigQueue.h"
 #include "SystemCalls.h"
 #include "Orchestrator.h"
 #include "LibmnlWrapper.h"
@@ -73,25 +74,39 @@ static void ipsecd_signal_set_mask()
 
 int main( int argc, const char* argv[] )
 {
-    ViciAPI vici_api;
-    ViciStreamParser vici_stream_parser(vici_api);
-    SystemCalls systemCalls;
-    MapFile mapFile(systemCalls);
-    IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, mapFile);
-    LibmnlWrapper mnl_wrapper;
-    IPsecNetlinkAPI ipsec_netlink(mnl_wrapper);
-    Orchestrator ipsec_orchest(ikeViciApi);
-
+    /////////////////////////
     //Set Signal
     ipsecd_signal_set_mask();
 
+    /////////////////////////
+    //Create Wrappers & APIs
+    SystemCalls systemCalls;
+    LibmnlWrapper mnl_wrapper;
+    ViciAPI vici_api;
+    MapFile mapFile(systemCalls);
+    ViciStreamParser vici_stream_parser(vici_api);
+    IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, mapFile);
+    IPsecNetlinkAPI ipsec_netlink(mnl_wrapper);
+
+    /////////////////////////
+    //Create Worker Classes
+    ConfigQueue config_queue(ikeViciApi, ipsec_netlink);
+
+    /////////////////////////
+    //Create Orchestrator Control Class
+    Orchestrator ipsec_orchest(ikeViciApi, config_queue);
+
+    /////////////////////////
+    //Initialize Orchestrator
     if (ipsec_orchest.initialize() != ipsec_ret::OK)
     {
         exit(EXIT_FAILURE);
     }
 
-    DebugMode *debugger = DebugMode::createInst(
-            ikeViciApi,ipsec_netlink, argc, (char **) argv);
+    /////////////////////////
+    //Create Debug Class
+    DebugMode* debugger = DebugMode::createInst(
+            ikeViciApi, ipsec_netlink, argc, (char **) argv);
 
     while(g_IsRunning && debugger->uccIsRunning())
     {

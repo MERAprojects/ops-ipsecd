@@ -22,26 +22,48 @@
 /**********************************
 *Local Includes
 **********************************/
-#include "Orchestrator.h"
 #include "IIKEAPI.h"
+#include "Orchestrator.h"
+#include "IConfigQueue.h"
 
-Orchestrator::Orchestrator(IIKEAPI& ikeapi): m_ikeapi(ikeapi)
+Orchestrator::Orchestrator(IIKEAPI& ike_api,
+                           IConfigQueue& config_queue)
+    : m_ike_api(ike_api)
+    , m_config_queue(config_queue)
 {
 }
 
 Orchestrator::~Orchestrator()
 {
+    m_config_queue.stop_thread();
 }
 
 ipsec_ret Orchestrator::initialize()
 {
-    ipsec_ret result=ipsec_ret::ERR;
+    if(m_is_ready)
+    {
+        return ipsec_ret::OK;
+    }
 
-    /*Initialize the IKEViciApi*/
-    result = m_ikeapi.initialize();
+    ipsec_ret result = ipsec_ret::OK;
+
+    ///////////////////////////////
+    //Initialize the IKE Api
+    result = m_ike_api.initialize();
     if (result != ipsec_ret::OK)
     {
         return result;
     }
+
+    ///////////////////////////////
+    //Start Config Queue Thread
+    result = m_config_queue.start_thread();
+    if (result != ipsec_ret::OK)
+    {
+        return result;
+    }
+
+    m_is_ready = true;
+
     return result;
 }

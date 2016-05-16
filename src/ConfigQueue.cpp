@@ -23,6 +23,7 @@
 *Local Includes
 **********************************/
 #include "IIKEAPI.h"
+#include "IIPsecAPI.h"
 #include "ConfigTask.h"
 #include "ConfigQueue.h"
 #include "ConfigTaskSA.h"
@@ -33,8 +34,9 @@
 /**********************************
 *Function Declarations
 **********************************/
-ConfigQueue::ConfigQueue(IIKEAPI& ike_api)
+ConfigQueue::ConfigQueue(IIKEAPI& ike_api, IIPsecAPI& ipsec_api)
     : m_ike_api(ike_api)
+    , m_ipsec_api(ipsec_api)
 {
 }
 
@@ -128,13 +130,21 @@ void ConfigQueue::run_config_task(const ConfigTask* task)
 {
     switch(task->get_type())
     {
-        /*
         case ipsec_type::sa:
+            {
+                const ConfigTaskSA* sa_task =
+                        dynamic_cast<const ConfigTaskSA*>(task);
+                sa_config_task(sa_task);
+            }
             break;
 
         case ipsec_type::sp:
+            {
+                const ConfigTaskSP* sp_task =
+                        dynamic_cast<const ConfigTaskSP*>(task);
+                sp_config_task(sp_task);
+            }
             break;
-        */
 
         case ipsec_type::ike:
             {
@@ -238,6 +248,140 @@ void ConfigQueue::ca_config_task(const ConfigTaskCA* task)
             if(ret != ipsec_ret::OK)
             {
                 //TODO: add log
+            }
+
+            break;
+
+        default:
+            //TODO: Add Log
+            break;
+    }
+}
+
+void ConfigQueue::sa_config_task(const ConfigTaskSA* task)
+{
+    if(task == nullptr)
+    {
+        //TODO: Add log
+
+        return;
+    }
+
+    ipsec_ret ret = ipsec_ret::OK;
+
+    switch(task->get_config_action())
+    {
+        case ipsec_config_action::add:
+
+            ret = m_ipsec_api.add_sa(task->get_sa());
+
+            if(ret != ipsec_ret::OK)
+            {
+                //TODO: add log
+                //TODO: Send Status to OVSDB
+            }
+            else
+            {
+                //TODO: Send Status to OVSDB
+            }
+
+            break;
+
+        case ipsec_config_action::modify:
+
+            ret = m_ipsec_api.modify_sa(task->get_sa());
+
+            if(ret != ipsec_ret::OK)
+            {
+                //TODO: add log
+                //TODO: Send Status to OVSDB
+            }
+            else
+            {
+                //TODO: Send Status to OVSDB
+            }
+
+            break;
+
+        case ipsec_config_action::remove:
+
+            ret = m_ipsec_api.del_sa(task->get_sa().m_id);
+
+            if(ret != ipsec_ret::OK)
+            {
+                //TODO: add log
+                //TODO: Send Status to OVSDB
+            }
+            else
+            {
+                //TODO: Send Status to OVSDB
+            }
+
+            break;
+
+        default:
+            //TODO: Add Log
+            break;
+    }
+}
+
+void ConfigQueue::sp_config_task(const ConfigTaskSP* task)
+{
+    if(task == nullptr)
+    {
+        //TODO: Add log
+
+        return;
+    }
+
+    ipsec_ret ret = ipsec_ret::OK;
+
+    switch(task->get_config_action())
+    {
+        case ipsec_config_action::add:
+
+            ret = m_ipsec_api.add_sp(task->get_sp());
+
+            if(ret != ipsec_ret::OK)
+            {
+                //TODO: add log
+                //TODO: Send Status to OVSDB
+            }
+            else
+            {
+                //TODO: Send Status to OVSDB
+            }
+
+            break;
+
+        case ipsec_config_action::modify:
+
+            ret = m_ipsec_api.modify_sp(task->get_sp());
+
+            if(ret != ipsec_ret::OK)
+            {
+                //TODO: add log
+                //TODO: Send Status to OVSDB
+            }
+            else
+            {
+                //TODO: Send Status to OVSDB
+            }
+
+            break;
+
+        case ipsec_config_action::remove:
+
+            ret = m_ipsec_api.del_sp(task->get_sp().m_id);
+
+            if(ret != ipsec_ret::OK)
+            {
+                //TODO: add log
+                //TODO: Send Status to OVSDB
+            }
+            else
+            {
+                //TODO: Send Status to OVSDB
             }
 
             break;
