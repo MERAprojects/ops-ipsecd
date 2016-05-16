@@ -24,12 +24,14 @@
 **********************************/
 #include "IIKEAPI.h"
 #include "StatPublisher.h"
+#include "IIPsecAPI.h"
 
 /**********************************
 *Function Declarations
 **********************************/
-StatPublisher::StatPublisher(IIKEAPI& ike_api)
+StatPublisher::StatPublisher(IIKEAPI& ike_api, IIPsecAPI& ipsec_api)
     : m_ike_api(ike_api)
+    , m_ipsec_api(ipsec_api)
 {
 }
 
@@ -104,11 +106,31 @@ ipsec_ret StatPublisher::publish_stat(const ipsec_stat_pub& stat_ipsec)
 {
     switch(stat_ipsec.m_type)
     {
-        /*case ipsec_type::sa:
+        case ipsec_type::sa:
+            {
+                ipsec_sa sa;
+
+                if(m_ipsec_api.get_sa(stat_ipsec.m_sa_spi, sa) != ipsec_ret::OK)
+                {
+                    return ipsec_ret::ERR;
+                }
+
+                //TODO: publish to OVSDB
+            }
             break;
 
         case ipsec_type::sp:
-            break;*/
+            {
+                ipsec_sp sp;
+
+                if(m_ipsec_api.get_sp(stat_ipsec.m_sp_id, sp) != ipsec_ret::OK)
+                {
+                    return ipsec_ret::ERR;
+                }
+
+                //TODO: publish to OVSDB
+            }
+            break;
 
         case ipsec_type::ike:
             {

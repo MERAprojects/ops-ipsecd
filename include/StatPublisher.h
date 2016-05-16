@@ -36,6 +36,7 @@
 *Forward Decl
 **********************************/
 class IIKEAPI;
+class IIPsecAPI;
 
 /**
  * Class for to Publish Stats
@@ -85,6 +86,11 @@ class StatPublisher : public IStatPublisher
         IIKEAPI& m_ike_api;
 
         /**
+         * IPsec API Interface
+         */
+        IIPsecAPI& m_ipsec_api;
+
+        /**
          * @copydoc IStatPublisher::run_publisher
          */
         void run_publisher() override;
@@ -100,8 +106,10 @@ class StatPublisher : public IStatPublisher
          * Default Constructor
          *
          * @param ike_api IKE API Interface
+         *
+         * @param ipsec_api IPsec API Interface
          */
-        StatPublisher(IIKEAPI& ike_api);
+        StatPublisher(IIKEAPI& ike_api, IIPsecAPI& ipsec_api);
 
         /**
          * Default Destructor

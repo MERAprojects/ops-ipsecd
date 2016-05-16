@@ -34,6 +34,7 @@
 #include "ConfigQueue.h"
 #include "SystemCalls.h"
 #include "Orchestrator.h"
+#include "StatPublisher.h"
 #include "LibmnlWrapper.h"
 #include "IPsecNetlinkAPI.h"
 #include "ViciStreamParser.h"
@@ -91,10 +92,11 @@ int main( int argc, const char* argv[] )
     /////////////////////////
     //Create Worker Classes
     ConfigQueue config_queue(ikeViciApi, ipsec_netlink);
+    StatPublisher stat_pub(ikeViciApi, ipsec_netlink);
 
     /////////////////////////
     //Create Orchestrator Control Class
-    Orchestrator ipsec_orchest(ikeViciApi, config_queue);
+    Orchestrator ipsec_orchest(ikeViciApi, config_queue, stat_pub);
 
     /////////////////////////
     //Initialize Orchestrator

@@ -25,17 +25,22 @@
 #include "IIKEAPI.h"
 #include "Orchestrator.h"
 #include "IConfigQueue.h"
+#include "IStatPublisher.h"
 
 Orchestrator::Orchestrator(IIKEAPI& ike_api,
-                           IConfigQueue& config_queue)
+                           IConfigQueue& config_queue,
+                           IStatPublisher& stats_publisher)
     : m_ike_api(ike_api)
     , m_config_queue(config_queue)
+    , m_stats_publisher(stats_publisher)
 {
 }
 
 Orchestrator::~Orchestrator()
 {
     m_config_queue.stop_thread();
+
+    m_stats_publisher.stop_thread();
 }
 
 ipsec_ret Orchestrator::initialize()
@@ -58,6 +63,14 @@ ipsec_ret Orchestrator::initialize()
     ///////////////////////////////
     //Start Config Queue Thread
     result = m_config_queue.start_thread();
+    if (result != ipsec_ret::OK)
+    {
+        return result;
+    }
+
+    ///////////////////////////////
+    //Start Stat Publisher Thread
+    result = m_stats_publisher.start_thread();
     if (result != ipsec_ret::OK)
     {
         return result;

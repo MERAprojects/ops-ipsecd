@@ -33,6 +33,7 @@
 class IIKEAPI;
 class IIPsecAPI;
 class IConfigQueue;
+class IStatPublisher;
 
 class Orchestrator
 {
@@ -54,6 +55,11 @@ class Orchestrator
         IConfigQueue& m_config_queue;
 
         /**
+         * Stat Publisher Interface
+         */
+        IStatPublisher& m_stats_publisher;
+
+        /**
          * Determines if the class was successfully initialized
          */
         bool m_is_ready = false;
@@ -67,8 +73,11 @@ class Orchestrator
          * @param ipsec_api IPsec API Interface
          *
          * @param config_queue Config Queue Interface
+         *
+         * @param stats_publisher Stats Publisher Interface
          */
-        Orchestrator(IIKEAPI& ike_api, IConfigQueue& config_queue);
+        Orchestrator(IIKEAPI& ike_api, IConfigQueue& config_queue,
+                     IStatPublisher& stats_publisher);
 
         /**
          * Initialize main method for ops-ipsecd

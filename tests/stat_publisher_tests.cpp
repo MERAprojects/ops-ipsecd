@@ -26,6 +26,7 @@
 #include "ops-ipsecd.h"
 #include "StatPublisher.h"
 #include "mocks/mock_IIKEAPI.h"
+#include "mock_IIPsecAPI.h"
 
 /**********************************
 *Using
@@ -45,8 +46,8 @@ class StatPublisher_EnO : public StatPublisher
 {
     public:
 
-        StatPublisher_EnO(IIKEAPI& ike_api)
-            : StatPublisher(ike_api)
+        StatPublisher_EnO(IIKEAPI& ike_api, IIPsecAPI& ipsec_api)
+            : StatPublisher(ike_api, ipsec_api)
         {
         }
 
@@ -91,10 +92,11 @@ class StatPublisherTestSuite : public Test
     public:
 
         MockIIKEAPI m_ike_api;
+        MockIIPsecAPI m_ipsec_api;
         StatPublisher_EnO m_StatPublisher;
 
         StatPublisherTestSuite()
-            : m_StatPublisher(m_ike_api)
+            : m_StatPublisher(m_ike_api, m_ipsec_api)
         {
         }
 
