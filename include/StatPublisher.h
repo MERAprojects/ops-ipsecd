@@ -68,7 +68,7 @@ class StatPublisher : public IStatPublisher
         /**
          * Seconds to wait before publishing
          */
-        uint32_t m_publish_time_sec = 0;
+        uint32_t m_publish_time_sec = 1;
 
         /**
          * Ticks that have pass

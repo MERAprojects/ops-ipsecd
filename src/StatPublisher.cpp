@@ -79,11 +79,11 @@ void StatPublisher::run_publisher()
 {
     while(m_is_running)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
         ++m_current_ticks;
 
-        if(m_current_ticks < m_publish_time_sec)
+        if((m_current_ticks / 4) < m_publish_time_sec)
         {
             continue;
         }
