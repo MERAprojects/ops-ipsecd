@@ -439,7 +439,7 @@ namespace ipsecd_helper
         }
     }
 
-    void set_str_to_ip_addr_t(std::string ip_number, uint16_t family,
+    void set_str_to_ip_addr_t(const std::string& ip_number, uint16_t family,
             ip_addr_t& address)
     {
         struct sockaddr_in add;
@@ -459,7 +459,7 @@ namespace ipsecd_helper
         }
     }
 
-    bool set_dst_selector(std::string dst_ip, ipsec_selector& selector)
+    bool set_dst_selector(const std::string& dst_ip, ipsec_selector& selector)
     {
         struct sockaddr_in add;
         /*set human readable IP number into str*/
@@ -478,7 +478,7 @@ namespace ipsecd_helper
         }
     }
 
-    bool set_src_selector(std::string src_ip, ipsec_selector& selector)
+    bool set_src_selector(const std::string& src_ip, ipsec_selector& selector)
     {
         struct sockaddr_in add;
         /*set human readable IP number into str*/
@@ -497,7 +497,7 @@ namespace ipsecd_helper
         }
     }
 
-    bool str_to_ipsec_direction(std::string str_dir,
+    bool str_to_ipsec_direction(const std::string& str_dir,
             ipsec_direction& direction)
     {
         bool result = false;
@@ -529,4 +529,19 @@ namespace ipsecd_helper
 
     }
 
+    bool str_to_ipsec_action(const std::string& str_action,
+            ipsec_action& action)
+    {
+        if(str_action.compare("allow") == 0)
+        {
+            action = ipsec_action::allow;
+            return true;
+        }
+        if(str_action.compare("block") == 0)
+        {
+            action  = ipsec_action::block;
+            return true;
+        }
+        return false;
+    }
 }

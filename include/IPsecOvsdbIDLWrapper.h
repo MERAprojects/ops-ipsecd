@@ -198,6 +198,11 @@ class IPsecOvsdbIDLWrapper: public IIPsecOvsdbIDLWrapper
          */
         void idl_add_and_track_all_column(idl_t idl, const idl_table_t tc);
 
+        /**
+         * @copydoc IIPsecOvsdbIDLWrapper::rundir
+         */
+        const std::string rundir(void) override;
+
         ///////////////////////////////////////////////////////////////
         //     VSWITCH specific functions for ops-ipsecd tables     //
         /////////////////////////////////////////////////////////////

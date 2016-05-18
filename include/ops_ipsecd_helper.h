@@ -199,7 +199,7 @@ namespace ipsecd_helper
      * @return true if str_dir is a valid string value and direction has
      * been modified
      */
-    extern bool str_to_ipsec_direction(std::string str_dir,
+    extern bool str_to_ipsec_direction(const std::string& str_dir,
             ipsec_direction& direction);
 
     /**
@@ -212,7 +212,8 @@ namespace ipsecd_helper
      * @return true if Selector has been modified, false if m_addr_family
      * is not defined
      */
-    extern bool set_dst_selector(std::string dst_ip, ipsec_selector& selector);
+    extern bool set_dst_selector(const std::string& dst_ip,
+            ipsec_selector& selector);
 
     /**
      * Set src_ip selector value from string
@@ -224,7 +225,8 @@ namespace ipsecd_helper
      * @return true if Selector has been modified, false if m_addr_family
      * is not defined
      */
-    extern bool set_src_selector(std::string src_ip, ipsec_selector& selector);
+    extern bool set_src_selector(const std::string& src_ip,
+            ipsec_selector& selector);
 
     /**
      * Set ip address from string
@@ -235,8 +237,21 @@ namespace ipsecd_helper
      *
      * @param family Type
      */
-    extern void set_str_to_ip_addr_t(std::string ip_number,uint16_t family,
-            ip_addr_t& address);
+    extern void set_str_to_ip_addr_t(const std::string& ip_number,
+            uint16_t family, ip_addr_t& address);
+
+    /**
+     * Set action Enum from string
+     *
+     * @param str_action Action on string format
+     *
+     * @param direction Enum action Type to modify
+     *
+     * @return true if str_action is a valid string value and action has
+     * been modified
+     */
+    extern bool str_to_ipsec_action(const std::string& str_action,
+            ipsec_action& action);
 }
 
 #endif /* OPS_IPSECD_HELPER_H */

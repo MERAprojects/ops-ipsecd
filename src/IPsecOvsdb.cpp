@@ -22,7 +22,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
-
+#include <algorithm>
 
 /**********************************
 * Local Includes
@@ -44,8 +44,12 @@ IPsecOvsdb::~IPsecOvsdb()
 ipsec_ret IPsecOvsdb::initialize()
 {
     ipsec_ret result = ipsec_ret::OK;
+    std::string run_path(m_idl_wrapper.rundir());
 
     m_idl_wrapper.init();
+
+    /*set the ovsdb path*/
+    set_db_path("unix:" + run_path + "/db.sock");
 
     /* Initialize IDL through a new connection to the DB*/
     m_idl = m_idl_wrapper.idl_create(
@@ -411,6 +415,8 @@ ipsec_ret IPsecOvsdb::update_cache(unsigned int seq_no)
                             ipsec_events::sa_modified) == ipsec_ret::OK)
                 {
                     /*TODO: add log info*/
+                    ipsec_sa sa;
+                    ovsrec_to_ipsec_sa(const_cast<ipsec_manual_sa_t>(sa_row), sa);
                 }
             }
             else if(m_is_ready == true)
@@ -542,64 +548,132 @@ void IPsecOvsdb::ovsrec_to_ipsec_sa(const ipsec_manual_sa_t row,
     std::string column = "";
 
     sa.m_id.m_spi = (uint32_t)row->SPI;
-    column.assign(row->mode);
-    if (column.compare(OVSREC_IPSEC_MANUAL_SA_MODE_TRANSPORT))
+    if(row->mode != nullptr)
     {
-        sa.m_mode = ipsec_mode::transport;
-    }
-    else
-    {
-        sa.m_mode = ipsec_mode::tunnel;
+        column.assign(row->mode);
+        if (column.compare(OVSREC_IPSEC_MANUAL_SA_MODE_TRANSPORT))
+        {
+            sa.m_mode = ipsec_mode::transport;
+        }
+        else
+        {
+            sa.m_mode = ipsec_mode::tunnel;
+        }
     }
     sa.m_req_id = (uint32_t)row->request_id;
-
-    column.assign(row->src_ip);
-    if(column.find_first_of(":")==std::string::npos)
+    if(row->src_ip != nullptr)
     {
-        /*IPv4*/
-        sa.m_id.m_addr_family = AF_INET;
+        column.assign(row->src_ip);
+        if(column.find_first_of(":")==std::string::npos)
+        {
+            /*IPv4*/
+            sa.m_id.m_addr_family = AF_INET;
+        }
+        else
+        {
+            /*IPv6*/
+            sa.m_id.m_addr_family = AF_INET6;
+        }
+        ipsecd_helper::set_str_to_ip_addr_t(column, sa.m_id.m_addr_family,
+                sa.m_id.m_src_ip);
     }
-    else
+    if(row->dest_ip != nullptr)
     {
-        /*IPv6*/
-        sa.m_id.m_addr_family = AF_INET6;
+        column.assign(row->dest_ip);
+        ipsecd_helper::set_str_to_ip_addr_t(column, sa.m_id.m_addr_family,
+                sa.m_id.m_dst_ip);
     }
-    ipsecd_helper::set_str_to_ip_addr_t(column, sa.m_id.m_addr_family,
-            sa.m_id.m_src_ip);
-
-    column.assign(row->dest_ip);
-    ipsecd_helper::set_str_to_ip_addr_t(column, sa.m_id.m_addr_family,
-            sa.m_id.m_dst_ip);
-
-    column.assign(row->protocol);
-    if(column.compare(OVSREC_IPSEC_MANUAL_SA_PROTOCOL_AH)==0)
+    if(row->protocol != nullptr)
     {
-        sa.m_id.m_protocol = 51;
+        column.assign(row->protocol);
+        if(column.compare(OVSREC_IPSEC_MANUAL_SA_PROTOCOL_AH)==0)
+        {
+            sa.m_id.m_protocol = static_cast<int>(ipsec_auth_method::ah);
+        }
+        else
+        {
+            sa.m_id.m_protocol = static_cast<int>(ipsec_auth_method::esp);
+        }
     }
-    else
+    if(row->selector_dest_prefix != nullptr)
     {
-        sa.m_id.m_protocol = 50;
+        column.assign(row->selector_dest_prefix);
+        if(column.find_first_of(":")==std::string::npos)
+        {
+            /*IPv4*/
+            sa.m_selector.m_addr_family = AF_INET;
+        }
+        else
+        {
+            /*IPv6*/
+            sa.m_selector.m_addr_family = AF_INET6;
+        }
+        ipsecd_helper::set_dst_selector(column, sa.m_selector);
+    }
+    if(row->selector_src_prefix)
+    {
+        column.assign(row->selector_src_prefix);
+        ipsecd_helper::set_src_selector(column, sa.m_selector);
+    }
+    if(row->authentication != nullptr)
+    {
+        column.assign(row->authentication);
+        sa.m_auth_set = true;
+        /*to lowercase*/
+        std::transform(
+                column.begin(), column.end(), column.begin(), ::tolower);
+        /*Erase "HMAC"*/
+        column.erase(column.end()-4, column.end());
+        sa.m_auth.m_name.assign(column);
+        sa.m_auth.m_key.assign(row->auth_key);
     }
 
-    column.assign(row->selector_dest_prefix);
-    if(column.find_first_of(":")==std::string::npos)
+    if(row->encryption != nullptr)
     {
-        /*IPv4*/
-        sa.m_selector.m_addr_family = AF_INET;
+        column.assign(row->encryption);
+        std::transform(
+                column.begin(), column.end(), column.begin(), ::tolower);
+        sa.m_crypt.m_name.assign(column);
+        sa.m_crypt.m_key.assign(row->encr_key);
     }
-    else
+
+    /*stats, m_lifetime_current*/
+    if(smap_get(&row->statistics,"add_time") != nullptr)
     {
-        /*IPv6*/
-        sa.m_selector.m_addr_family = AF_INET6;
+        sa.m_lifetime_current.m_add_time = std::stoi(
+                smap_get(&row->statistics,"add_time"), nullptr, 0);
     }
-    ipsecd_helper::set_dst_selector(column, sa.m_selector);
+    if(smap_get(&row->statistics,"use_time") != nullptr)
+    {
+        sa.m_lifetime_current.m_use_time = std::stoi(
+                smap_get(&row->statistics, "use_time"), nullptr, 0);
+    }
+    if(smap_get(&row->statistics,"bytes") != nullptr)
+    {
+        sa.m_lifetime_current.m_bytes = std::stoi(
+                smap_get(&row->statistics, "bytes"), nullptr, 0);
+    }
+    if(smap_get(&row->statistics,"packets") != nullptr)
+    {
+        sa.m_lifetime_current.m_packets = std::stoi(
+                smap_get(&row->statistics, "packets"), nullptr, 0);
+    }
+    if(smap_get(&row->statistics,"replay_window") != nullptr)
+    {
+        sa.m_stats.m_replay_window = std::stoi(
+                smap_get(&row->statistics,"replay_window"), nullptr, 0);
+    }
+    if(smap_get(&row->statistics,"replay") != nullptr)
+    {
+        sa.m_stats.m_replay = std::stoi(
+                smap_get(&row->statistics,"replay"), nullptr, 0);
+    }
 
-    column.assign(row->selector_src_prefix);
-    ipsecd_helper::set_src_selector(column, sa.m_selector);
-
-    column.assign(row->auth_key);
-    column.assign(row->authentication);
-    column.assign(row->encr_key);
+    if(smap_get(&row->statistics,"integrity_failed") != nullptr)
+    {
+        sa.m_stats.m_integrity_failed = std::stoi(
+                smap_get(&row->statistics,"integrity_failed"), nullptr, 0);
+    }
 }
 
 void IPsecOvsdb::ipsec_sa_to_ovsrec(ipsec_sa& sa, ipsec_manual_sa_t& row)
@@ -616,59 +690,112 @@ void IPsecOvsdb::ovsrec_to_ipsec_sp(const ipsec_manual_sp_t row, ipsec_sp& sp)
     std::string ip_buffer = "";
     /*template object for m_template_list member*/
     ipsec_tmpl tmpl;
-    value.assign(row->action);
 
-    ipsecd_helper::str_to_ipsec_direction(value, sp.m_id.m_dir);
-    value.assign(row->ip_family);
-    if(value.compare(OVSREC_IPSEC_MANUAL_SP_IP_FAMILY_IPV4)==0)
+    if(row->direction != nullptr)
     {
+        value.assign(row->direction);
+        ipsecd_helper::str_to_ipsec_direction(value, sp.m_id.m_dir);
+    }
+    if(row->ip_family != nullptr)
+    {
+        value.assign(row->ip_family);
+        if(value.compare(OVSREC_IPSEC_MANUAL_SP_IP_FAMILY_IPV4)==0)
+        {
 
-        sp.m_id.m_selector.m_addr_family = AF_INET;
+            sp.m_id.m_selector.m_addr_family = AF_INET;
+        }
+        else
+        {
+            sp.m_id.m_selector.m_addr_family = AF_INET6;
+        }
     }
-    else
+    if(row->dest_prefix != nullptr)
     {
-        sp.m_id.m_selector.m_addr_family = AF_INET6;
+        ip_buffer.assign(row->dest_prefix);
+        ipsecd_helper::set_dst_selector(ip_buffer, sp.m_id.m_selector);
     }
-    ip_buffer.assign(row->dest_prefix);
-    ipsecd_helper::set_dst_selector(ip_buffer, sp.m_id.m_selector);
-    ip_buffer.assign(row->src_prefix);
-    ipsecd_helper::set_src_selector(ip_buffer, sp.m_id.m_selector);
+    if(row->src_prefix != nullptr)
+    {
+        ip_buffer.assign(row->src_prefix);
+        ipsecd_helper::set_src_selector(ip_buffer, sp.m_id.m_selector);
+    }
     sp.m_priority = (uint32_t)(*row->priority);
 
+    if(row->action != nullptr)
+    {
+        value.assign(row->action);
+        ipsecd_helper::str_to_ipsec_action(value, sp.m_action);
+    }
     tmpl.m_req_id = (uint32_t)(row->tmpl_request_id);
-    value.assign(row->tmpl_ip_family);
-    if(value.compare(OVSREC_IPSEC_MANUAL_SP_TMPL_IP_FAMILY_IPV4) == 0)
+    if(row->tmpl_ip_family != nullptr)
     {
-        tmpl.m_addr_family = AF_INET;
+        value.assign(row->tmpl_ip_family);
+        if(value.compare(OVSREC_IPSEC_MANUAL_SP_TMPL_IP_FAMILY_IPV4) == 0)
+        {
+            tmpl.m_addr_family = AF_INET;
+        }
+        else
+        {
+            tmpl.m_addr_family = AF_INET6;
+        }
     }
-    else
+    if(row->tmpl_mode)
     {
-        tmpl.m_addr_family = AF_INET6;
+        value.assign(row->tmpl_mode);
+        if(value.compare(OVSREC_IPSEC_MANUAL_SP_TMPL_MODE_TRANSPORT) == 0)
+        {
+            tmpl.m_mode = ipsec_mode::transport;
+        }
+        else
+        {
+            tmpl.m_mode =  ipsec_mode::tunnel;
+        }
     }
-    value.assign(row->tmpl_mode);
-    if(value.compare(OVSREC_IPSEC_MANUAL_SP_TMPL_MODE_TRANSPORT) == 0)
+    if(row->tmpl_protocol != nullptr)
     {
-        tmpl.m_mode = ipsec_mode::transport;
+        value.assign(row->tmpl_protocol);
+        if(value.compare(OVSREC_IPSEC_MANUAL_SP_TMPL_PROTOCOL_AH))
+        {
+            tmpl.m_protocol = static_cast<int>(ipsec_auth_method::ah);
+        }
+        else
+        {
+            tmpl.m_protocol = static_cast<int>(ipsec_auth_method::esp);
+        }
     }
-    else
+    if(row->tmpl_dest_ip != nullptr)
     {
-        tmpl.m_mode =  ipsec_mode::tunnel;
+        ip_buffer.assign(row->tmpl_dest_ip);
+        ipsecd_helper::set_str_to_ip_addr_t(ip_buffer, tmpl.m_addr_family,
+                tmpl.m_dst_ip);
     }
-    value.assign(row->tmpl_protocol);
-    if(value.compare(OVSREC_IPSEC_MANUAL_SP_TMPL_PROTOCOL_AH))
+    if(row->tmpl_src_ip)
     {
-        tmpl.m_protocol = static_cast<int>(ipsec_auth_method::ah);
+        ip_buffer.assign(row->tmpl_src_ip);
+        ipsecd_helper::set_str_to_ip_addr_t(ip_buffer, tmpl.m_addr_family,
+                tmpl.m_src_ip);
     }
-    else
-    {
-        tmpl.m_protocol = static_cast<int>(ipsec_auth_method::esp);
-    }
-    ip_buffer.assign(row->tmpl_dest_ip);
-    ipsecd_helper::set_str_to_ip_addr_t(ip_buffer, tmpl.m_addr_family,
-            tmpl.m_dst_ip);
-    ip_buffer.assign(row->tmpl_src_ip);
-    ipsecd_helper::set_str_to_ip_addr_t(ip_buffer, tmpl.m_addr_family,
-            tmpl.m_src_ip);
-
     sp.m_template_lists.push_back(tmpl);
+
+    /*Geting stats*/
+    if(smap_get(&row->statistics,"add_time") != nullptr)
+    {
+        sp.m_life_stats.m_add_time = std::stoi(
+                smap_get(&row->statistics,"add_time"), nullptr, 0);
+    }
+    if(smap_get(&row->statistics,"use_time") != nullptr)
+    {
+        sp.m_life_stats.m_use_time = std::stoi(
+               smap_get(&row->statistics, "use_time"), nullptr, 0);
+    }
+    if(smap_get(&row->statistics,"bytes") != nullptr)
+    {
+        sp.m_life_stats.m_bytes = std::stoi(
+                smap_get(&row->statistics, "bytes"), nullptr, 0);
+    }
+    if(smap_get(&row->statistics,"packets") != nullptr)
+    {
+        sp.m_life_stats.m_packets = std::stoi(
+                smap_get(&row->statistics, "packets"), nullptr, 0);
+    }
 }

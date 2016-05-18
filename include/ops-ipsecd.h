@@ -128,8 +128,8 @@ enum class ipsec_diffie_group : uint32_t
 
 enum class ipsec_auth_method : uint32_t
 {
-    ah = 0,
-    esp
+    esp = 50,
+    ah
 };
 
 enum class ipsec_mode : uint32_t
@@ -938,6 +938,7 @@ struct ipsec_sp
      * Template Lists in this SPD
      */
     std::vector<ipsec_tmpl> m_template_lists;
+    ipsec_lifetime_current m_life_stats;
 };
 
 /**

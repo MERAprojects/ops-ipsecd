@@ -22,6 +22,7 @@
 /**********************************
 *System Includes
 **********************************/
+#include <string>
 
 /**********************************
 *Local Includes
@@ -349,6 +350,13 @@ class IIPsecOvsdbIDLWrapper
          */
         virtual void idl_add_and_track_all_column(
                 idl_t idl, const idl_table_t tc) = 0;
+
+        /**
+         * Get the path from where OVSDB is running
+         *
+         * @return The path(std::string) from where OVSDB is running
+         */
+        virtual const std::string rundir(void) = 0;
 
         ///////////////////////////////////////////////////////////////
         //     VSWITCH specific functions for ops-ipsecd tables     //

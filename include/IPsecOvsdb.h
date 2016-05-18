@@ -70,7 +70,7 @@ class IPsecOvsdb : public IIPsecOvsdb
         /**
          * Path where the OVSDB socket is
          */
-        std::string db_path = "unix:/var/run/openvswitch/db.sock";
+        std::string db_path = "";
 
         /**
          * Determines if the request for changes on the OVSDB is coming from

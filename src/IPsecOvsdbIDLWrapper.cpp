@@ -199,6 +199,13 @@ void IPsecOvsdbIDLWrapper::idl_track_add_column(idl_t idl,
 {
     return ovsdb_idl_track_add_column(idl, column);
 }
+
+const std::string IPsecOvsdbIDLWrapper::rundir(void)
+{
+    const std::string path(ovs_rundir());
+    return path;
+}
+
 const ipsec_manual_sa_t IPsecOvsdbIDLWrapper::ipsec_manual_sa_first(
         const idl_t idl)
 {
