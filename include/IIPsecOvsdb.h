@@ -214,5 +214,15 @@ class IIPsecOvsdb
          */
         virtual ipsec_ret ipsecd_ovsdb_event(
                 ipsec_events event) = 0;
+
+        /**
+         * Set a integer value on 'column' into 'row'
+         *
+         * @param row Row to be modified
+         * @param column field to be modified in 'row'
+         * @param value New value on column
+         */
+        virtual void set_integer_to_column(const idl_row_t row,
+                idl_column_t column, int64_t value) = 0;
 };
 #endif /*IPSEC_OVSDB_H*/

@@ -143,10 +143,9 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sa_modify_row(const ipsec_sa& sa)
             /*SA is going to be modified*/
             if(sa_row->SPI == sa.m_id.m_spi)
             {
-                /*Replace for another way to set values*/
-                ovsrec_ipsec_manual_sa_set_request_id(sa_row, 55);
-                //ovsrec_ipsec_manual_sa_set_authentication(sa_row,"md5");
-                //ovsrec_ipsec_manual_sa_set_auth_key(sa_row,"This is just a test");
+                set_integer_to_column(const_cast<idl_row_t>(&sa_row->header_),
+                        &ovsrec_ipsec_manual_sa_col_request_id, sa.m_req_id);
+
                 status = m_idl_wrapper.idl_txn_commit_block(status_txn);
                 if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
                 {
@@ -798,4 +797,19 @@ void IPsecOvsdb::ovsrec_to_ipsec_sp(const ipsec_manual_sp_t row, ipsec_sp& sp)
         sp.m_life_stats.m_packets = std::stoi(
                 smap_get(&row->statistics, "packets"), nullptr, 0);
     }
+}
+
+void IPsecOvsdb::set_integer_to_column(const idl_row_t row,
+                idl_column_t column, int64_t value)
+{
+    struct ovsdb_datum datum;
+    union ovsdb_atom key;
+    /*TODO: log info*/
+    /*ovs_assert(inited);*/
+
+    datum.n = 1;
+    datum.keys = &key;
+    key.integer = value;
+    datum.values =  nullptr;
+    m_idl_wrapper.idl_txn_write_clone(row, column, &datum);
 }

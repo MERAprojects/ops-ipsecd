@@ -196,6 +196,12 @@ class IPsecOvsdb : public IIPsecOvsdb
          * @copydoc IIPsecOvsdb::ipsecd_ovsdb_event
          */
         ipsec_ret ipsecd_ovsdb_event(ipsec_events event) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::set_integer_to_column
+         */
+        void set_integer_to_column(const idl_row_t row,
+                idl_column_t column, int64_t value);
 };
 
 #endif /*IPSEC_OVSDB*/

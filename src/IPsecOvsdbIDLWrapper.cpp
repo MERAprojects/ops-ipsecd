@@ -135,6 +135,12 @@ void IPsecOvsdbIDLWrapper::idl_txn_write(const idl_row_t row,
     ovsdb_idl_txn_write(row, column, datum);
 }
 
+void IPsecOvsdbIDLWrapper::idl_txn_write_clone(const idl_row_t row,
+        const idl_column_t column, const idl_datum_t datum)
+{
+    ovsdb_idl_txn_write_clone(row, column, datum);
+}
+
 idl_t IPsecOvsdbIDLWrapper::idl_txn_get_idl(idl_txn_t txn)
 {
     return ovsdb_idl_txn_get_idl(txn);

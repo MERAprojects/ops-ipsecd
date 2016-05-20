@@ -148,6 +148,11 @@ class IPsecOvsdbIDLWrapper: public IIPsecOvsdbIDLWrapper
                 const idl_column_t column, idl_datum_t datum) override;
 
         /**
+         * @copydoc IIPsecOvsdbIDLWrapper::idl_txn_write_clone
+         */
+        void idl_txn_write_clone(const idl_row_t row,
+                const idl_column_t column, const idl_datum_t datum) override;
+        /**
          *@copydoc IIPsecOvsdbIDLWrapper::idl_txn_delete
          */
         void idl_txn_delete(const idl_row_t row_);

@@ -266,6 +266,16 @@ class IIPsecOvsdbIDLWrapper
                 const idl_column_t column, idl_datum_t datum) = 0;
 
         /**
+         * Writes 'datum' to the specified 'column' in 'row'. A transaction
+         * must be in progress.
+         *
+         * @param row Row to be modified
+         * @param column Column to be modified in row
+         * @param datum The date to be included
+         */
+        virtual void idl_txn_write_clone(const idl_row_t row,
+                const idl_column_t column, const idl_datum_t datum) = 0;
+        /**
          * Returns the IDL on which 'txn' acts.
          *
          * @param txn idl_txn_t type
