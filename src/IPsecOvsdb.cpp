@@ -103,7 +103,6 @@ ipsec_ret IPsecOvsdb::run()
         }
     }
 
-
     if(m_idl_wrapper.idl_is_lock_contended(m_idl))
     {
         //TODO: add log
@@ -812,4 +811,28 @@ void IPsecOvsdb::set_integer_to_column(const idl_row_t row,
     key.integer = value;
     datum.values =  nullptr;
     m_idl_wrapper.idl_txn_write_clone(row, column, &datum);
+}
+
+
+ipsec_ret IPsecOvsdb::set_string_to_column(const idl_row_t row,
+        idl_column_t column, const std::string& str_value)
+{
+    struct ovsdb_datum datum;
+    union ovsdb_atom key;
+    /*TODO: log info*/
+    /*ovs_assert(inited);*/
+
+    if(str_value.compare("") == 0)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    else
+    {
+        datum.n = 1;
+        datum.keys = &key;
+        key.string =  CONST_CAST(char *, str_value.c_str());
+    }
+    datum.values = nullptr;
+    m_idl_wrapper.idl_txn_write_clone(row, column, &datum);
+    return ipsec_ret::OK;
 }

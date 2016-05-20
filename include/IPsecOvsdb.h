@@ -201,7 +201,13 @@ class IPsecOvsdb : public IIPsecOvsdb
          * @copydoc IIPsecOvsdb::set_integer_to_column
          */
         void set_integer_to_column(const idl_row_t row,
-                idl_column_t column, int64_t value);
+                idl_column_t column, int64_t value) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::set_string_to_column
+         */
+        ipsec_ret set_string_to_column(const idl_row_t row,
+                idl_column_t column, const std::string& str_value) override;
 };
 
 #endif /*IPSEC_OVSDB*/
