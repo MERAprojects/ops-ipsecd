@@ -174,12 +174,14 @@ class IPsecOvsdb : public IIPsecOvsdb
         /**
          * @copydoc IIPsecOvsdb::ipsec_sa_to_ovsrec
          */
-        void ipsec_sa_to_ovsrec(ipsec_sa& sa, ipsec_manual_sa_t& row) override;
+        ipsec_ret ipsec_sa_to_ovsrec(const ipsec_sa& sa,
+                const ipsec_manual_sa_t row, bool is_new) override;
 
         /**
          * @copydoc IIPsecOvsdb::ipsec_sp_to_ovsrec
          */
-        void ipsec_sp_to_ovsrec(ipsec_sp& sp, ipsec_manual_sp_t& row) override;
+        ipsec_ret ipsec_sp_to_ovsrec(const ipsec_sp& sp,
+                const ipsec_manual_sp_t row, bool is_new) override;
 
         /**
          * @copydoc IIPsecOvsdb::ovsrec_to_ipsec_sp
@@ -208,6 +210,13 @@ class IPsecOvsdb : public IIPsecOvsdb
          */
         ipsec_ret set_string_to_column(const idl_row_t row,
                 idl_column_t column, const std::string& str_value) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::set_map_to_column
+         */
+        ipsec_ret set_map_to_column(const idl_row_t row, idl_column_t column,
+                const struct smap *ipsec_map,
+                const std::vector<std::string>& keys, bool is_empty) override;
 };
 
 #endif /*IPSEC_OVSDB*/

@@ -208,6 +208,11 @@ class IPsecOvsdbIDLWrapper: public IIPsecOvsdbIDLWrapper
          */
         const std::string rundir(void) override;
 
+        /**
+         * @copydoc IIPsecOvsdbIDLWrapper::datum_init_empty
+         */
+        void datum_init_empty(idl_datum_t datum) override;
+
         ///////////////////////////////////////////////////////////////
         //     VSWITCH specific functions for ops-ipsecd tables     //
         /////////////////////////////////////////////////////////////

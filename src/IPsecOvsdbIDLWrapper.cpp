@@ -200,6 +200,7 @@ void IPsecOvsdbIDLWrapper::init(void)
 {
     ovsrec_init();
 }
+
 void IPsecOvsdbIDLWrapper::idl_track_add_column(idl_t idl,
         const idl_column_t column)
 {
@@ -210,6 +211,11 @@ const std::string IPsecOvsdbIDLWrapper::rundir(void)
 {
     const std::string path(ovs_rundir());
     return path;
+}
+
+void IPsecOvsdbIDLWrapper::datum_init_empty(idl_datum_t datum)
+{
+    ovsdb_datum_init_empty(datum);
 }
 
 const ipsec_manual_sa_t IPsecOvsdbIDLWrapper::ipsec_manual_sa_first(

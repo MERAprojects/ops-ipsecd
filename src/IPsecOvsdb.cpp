@@ -142,9 +142,12 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sa_modify_row(const ipsec_sa& sa)
             /*SA is going to be modified*/
             if(sa_row->SPI == sa.m_id.m_spi)
             {
-                set_integer_to_column(const_cast<idl_row_t>(&sa_row->header_),
-                        &ovsrec_ipsec_manual_sa_col_request_id, sa.m_req_id);
-
+                if (ipsec_sa_to_ovsrec(sa,
+                            const_cast<ipsec_manual_sa_t>(sa_row), false) != ipsec_ret::OK)
+                {
+                    m_idl_wrapper.idl_txn_destroy(status_txn);
+                    return ipsec_ret::NULL_PARAMETERS;
+                }
                 status = m_idl_wrapper.idl_txn_commit_block(status_txn);
                 if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
                 {
@@ -159,7 +162,6 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sa_modify_row(const ipsec_sa& sa)
                 }
 
                 m_idl_wrapper.idl_txn_destroy(status_txn);
-                printf("%s\n",ovsdb_idl_txn_status_to_string(status));
                 return result;
             }
         }
@@ -196,12 +198,16 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sa_insert_row(const ipsec_sa& sa)
     /*Get a New row from the OVSDB*/
     sa_row = m_idl_wrapper.ipsec_manual_sa_insert(status_txn);
 
-    /*TODO: replace this with a template design*/
-    ovsrec_ipsec_manual_sa_set_SPI(sa_row, sa.m_id.m_spi);
+    /*Set values*/
+    if (ipsec_sa_to_ovsrec(sa, const_cast<ipsec_manual_sa_t>(sa_row),
+                true) != ipsec_ret::OK)
+    {
+        m_idl_wrapper.idl_txn_destroy(status_txn);
+        return ipsec_ret::NULL_PARAMETERS;
+    }
 
     status = m_idl_wrapper.idl_txn_commit_block(status_txn);
 
-    printf("%s\n",ovsdb_idl_txn_status_to_string(status));
     if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
     {
         //TODO: add log
@@ -273,7 +279,6 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sa_delete_row(const ipsec_sa& sa)
                 }
 
                 m_idl_wrapper.idl_txn_destroy(status_txn);
-                printf("%s\n",ovsdb_idl_txn_status_to_string(status));
                 return result;
             }
         }
@@ -323,7 +328,6 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sp_insert_row(const ipsec_sp& sp)
 
     status = m_idl_wrapper.idl_txn_commit_block(status_txn);
 
-    printf("%s\n",ovsdb_idl_txn_status_to_string(status));
     if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
     {
         //TODO: add log
@@ -633,6 +637,7 @@ void IPsecOvsdb::ovsrec_to_ipsec_sa(const ipsec_manual_sa_t row,
                 column.begin(), column.end(), column.begin(), ::tolower);
         sa.m_crypt.m_name.assign(column);
         sa.m_crypt.m_key.assign(row->encr_key);
+        sa.m_crypt_set = true;
     }
 
     /*stats, m_lifetime_current*/
@@ -674,12 +679,171 @@ void IPsecOvsdb::ovsrec_to_ipsec_sa(const ipsec_manual_sa_t row,
     }
 }
 
-void IPsecOvsdb::ipsec_sa_to_ovsrec(ipsec_sa& sa, ipsec_manual_sa_t& row)
+ipsec_ret IPsecOvsdb::ipsec_sa_to_ovsrec(const ipsec_sa& sa,
+        const ipsec_manual_sa_t row, bool is_new)
 {
+    /*vector to save map's key*/
+    std::vector<std::string> keys;
+    std::string column = "";
+    struct smap ipsec_map;
+    smap_init(&ipsec_map);
+
+    /*Set integer values*/
+    if(is_new)
+    {
+        set_integer_to_column(&row->header_, &ovsrec_ipsec_manual_sa_col_SPI,
+                sa.m_id.m_spi);
+    }
+    set_integer_to_column(&row->header_,
+            &ovsrec_ipsec_manual_sa_col_request_id, sa.m_id.m_spi);
+
+    /*set string values*/
+    if(sa.m_auth_set)
+    {
+        if(set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sa_col_auth_key,
+                sa.m_auth.m_key) != ipsec_ret::OK)
+        {
+            return ipsec_ret::NULL_PARAMETERS;
+        }
+    }
+    /*Authentication*/
+    column.assign(sa.m_auth.m_name);
+    std::transform(column.begin(), column.end(), column.begin(), ::toupper);
+    /*add "HMAC" string*/
+    column.append("HMAC");
+    if(set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sa_col_authentication,
+                column) != ipsec_ret::OK)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+
+    /*Family IP, src_ip and dst_ip*/
+    if(sa.m_id.m_addr_family == 0)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    column.assign("");
+    ipsecd_helper::set_ip_addr_t_to_str(sa.m_id.m_src_ip,
+            sa.m_id.m_addr_family, column);
+    if(column.compare("") == 0)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    set_string_to_column(&row->header_, &ovsrec_ipsec_manual_sa_col_src_ip,
+            column);
+    column.assign("");
+    ipsecd_helper::set_ip_addr_t_to_str(sa.m_id.m_dst_ip,
+            sa.m_id.m_addr_family, column);
+    if(column.compare("") == 0)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sa_col_dest_ip, column);
+
+    /*Encryption*/
+    if(sa.m_crypt_set)
+    {
+        column.assign(sa.m_crypt.m_name);
+        std::transform(
+                column.begin(), column.end(), column.begin(), ::toupper);
+        if(set_string_to_column(&row->header_,
+                    &ovsrec_ipsec_manual_sa_col_encryption,
+                    column) != ipsec_ret::OK)
+        {
+            return ipsec_ret::NULL_PARAMETERS;
+        }
+        column.assign(sa.m_crypt.m_key);
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sa_col_encr_key, column);
+    }
+    /*Mode*/
+    if(sa.m_mode == ipsec_mode::tunnel)
+    {
+        set_string_to_column(&row->header_, &ovsrec_ipsec_manual_sa_col_mode,
+                "tunnel");
+    }
+    else
+    {
+        set_string_to_column(&row->header_, &ovsrec_ipsec_manual_sa_col_mode,
+                "transport");
+    }
+    /*Protocol*/
+    if(sa.m_id.m_protocol == static_cast<int>(ipsec_auth_method::ah))
+    {
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sa_col_protocol, "AH");
+    }
+    else if(sa.m_id.m_protocol == static_cast<int>(ipsec_auth_method::esp))
+    {
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sa_col_protocol,"ESP");
+    }
+    else
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    /*selector values*/
+    column.assign("");
+    ipsecd_helper::get_src_selector(sa.m_selector, column);
+    if(column.compare("") == 0)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    set_string_to_column(&row->header_,
+            &ovsrec_ipsec_manual_sa_col_selector_src_prefix, column);
+    column.assign("");
+    ipsecd_helper::get_dst_selector(sa.m_selector, column);
+    if(column.compare("") == 0)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    set_string_to_column(&row->header_,
+            &ovsrec_ipsec_manual_sa_col_selector_dest_prefix, column);
+
+    /*stats*/
+    smap_add(&ipsec_map, "add_time",
+            std::to_string(sa.m_lifetime_current.m_add_time).c_str());
+    keys.push_back("add_time");
+
+    smap_add(&ipsec_map, "use_time",
+            std::to_string(sa.m_lifetime_current.m_use_time).c_str());
+    keys.push_back("use_time");
+
+    smap_add(&ipsec_map, "bytes",
+            std::to_string(sa.m_lifetime_current.m_bytes).c_str());
+    keys.push_back("bytes");
+
+    smap_add(&ipsec_map, "packets",
+            std::to_string(sa.m_lifetime_current.m_packets).c_str());
+    keys.push_back("packets");
+
+    smap_add(&ipsec_map, "replay_window",
+            std::to_string(sa.m_stats.m_replay_window).c_str());
+    keys.push_back("replay_window");
+
+    smap_add(&ipsec_map, "replay",
+            std::to_string(sa.m_stats.m_replay).c_str());
+    keys.push_back("replay");
+
+    smap_add(&ipsec_map, "integrity_failed",
+            std::to_string(sa.m_stats.m_integrity_failed).c_str());
+    keys.push_back("integrity_failed");
+    if(set_map_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sa_col_statistics,
+                &ipsec_map, keys, false) != ipsec_ret::OK)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    return ipsec_ret::OK;
 }
 
-void IPsecOvsdb::ipsec_sp_to_ovsrec(ipsec_sp& sp, ipsec_manual_sp_t& row)
+ipsec_ret IPsecOvsdb::ipsec_sp_to_ovsrec(const ipsec_sp& sp,
+        const ipsec_manual_sp_t row, bool is_new)
 {
+    return ipsec_ret::OK;
 }
 
 void IPsecOvsdb::ovsrec_to_ipsec_sp(const ipsec_manual_sp_t row, ipsec_sp& sp)
@@ -813,7 +977,6 @@ void IPsecOvsdb::set_integer_to_column(const idl_row_t row,
     m_idl_wrapper.idl_txn_write_clone(row, column, &datum);
 }
 
-
 ipsec_ret IPsecOvsdb::set_string_to_column(const idl_row_t row,
         idl_column_t column, const std::string& str_value)
 {
@@ -833,6 +996,56 @@ ipsec_ret IPsecOvsdb::set_string_to_column(const idl_row_t row,
         key.string =  CONST_CAST(char *, str_value.c_str());
     }
     datum.values = nullptr;
+    m_idl_wrapper.idl_txn_write_clone(row, column, &datum);
+    return ipsec_ret::OK;
+}
+
+ipsec_ret IPsecOvsdb::set_map_to_column(const idl_row_t row,
+        idl_column_t column, const struct smap *ipsec_map,
+        const std::vector<std::string>& keys, bool is_empty)
+{
+    struct ovsdb_datum datum;
+    /*TODO: log info*/
+    /*ovs_assert(inited);*/
+
+    if(ipsec_map != nullptr)
+    {
+        if(is_empty)
+        {
+            return ipsec_ret::NULL_PARAMETERS;
+        }
+        else
+        {
+            int idx = 0;
+            datum.n = smap_count(ipsec_map);
+            datum.keys = (ovsdb_atom *)xmalloc(datum.n * sizeof *datum.keys);
+            datum.values = (ovsdb_atom *)xmalloc(
+                    datum.n * sizeof *datum.values);
+            for(std::vector<std::string>::const_iterator it = keys.begin();
+                    it != keys.end(); ++it)
+            {
+                if(smap_get(ipsec_map,(*it).c_str()) == nullptr)
+                {
+                    return ipsec_ret::ERR;
+                }
+                datum.keys[idx].string = xstrdup((*it).c_str());
+                datum.values[idx].string = xstrdup(
+                        smap_get(ipsec_map,(*it).c_str()));
+                idx++;
+            }
+        }
+    }
+    else
+    {
+        if(is_empty)
+        {
+            m_idl_wrapper.datum_init_empty(&datum);
+        }
+        else
+        {
+            return ipsec_ret::NULL_PARAMETERS;
+        }
+    }
     m_idl_wrapper.idl_txn_write_clone(row, column, &datum);
     return ipsec_ret::OK;
 }

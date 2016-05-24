@@ -23,6 +23,7 @@
 *System Includes
 **********************************/
 #include <string>
+#include <vector>
 
 /**********************************
 *Local Includes
@@ -174,18 +175,24 @@ class IIPsecOvsdb
          *
          * @param row ipsec_manual_sa_t type to be modified
          * @param sa ipsec_sa with the information related to a new SA
+         * @param is_new true if sa is going to be a new row, false otherwise
+         *
+         * @return ipsec_ret::OK if successfull, otherwise an error code
          */
-        virtual void ipsec_sa_to_ovsrec(
-                ipsec_sa& sa, ipsec_manual_sa_t& row) = 0;
+        virtual ipsec_ret ipsec_sa_to_ovsrec(const ipsec_sa& sa,
+                const ipsec_manual_sa_t row, bool is_new) = 0;
 
         /**
          * Copy the information related to a SP on sp into row
          *
          * @param row ipsec_manual_sp_t type
          * @param sa ipsec_sp type to be modified
+         * @param is_new true if sp is going to be a new row, false otherwise
+         *
+         * @return ipsec_ret::OK if successfull, otherwise an error code
          */
-        virtual void ipsec_sp_to_ovsrec(
-                ipsec_sp& sp, ipsec_manual_sp_t& row) = 0;
+        virtual ipsec_ret ipsec_sp_to_ovsrec(const ipsec_sp& sp,
+                const ipsec_manual_sp_t row, bool is_new) = 0;
 
         /**
          * Copy the information related to a SP on row into sp
@@ -230,12 +237,30 @@ class IIPsecOvsdb
          *
          * @param row Row to be modified
          * @param column Field to be modified in 'row'
-         * @param str_value New string on column
+         * @param str_value New string on 'column'
          *
          * @return ipsec_ret::NULL_PARAMETERS if str_value is an empty string
          * or ipsec_ret::OK if successful
          */
         virtual ipsec_ret set_string_to_column(const idl_row_t row,
                 idl_column_t column, const std::string& str_value) = 0;
+
+        /**
+         * Set a map on column into row. The caller retains ownership of
+         * 'ipsec_map' and everything in it
+         *
+         * @param row Row to be modified
+         * @param column Field to be modified in 'row'
+         * @param ipsec_map New map on 'column'
+         * @param keys Set of keys for ipsec_map smap
+         * @param empty If true, send a empty datum OVSDB, if false ipsec_map
+         * must have at least one key-value pair
+         *
+         * @return ipsec_ret::NULL_PARAMETERS if ipsec_map is nullptr and
+         * is_empty is false, ipsec_ret::OK if successfull
+         */
+        virtual ipsec_ret set_map_to_column(const idl_row_t row,
+                idl_column_t column, const struct smap *ipsec_map,
+                const std::vector<std::string>& keys, bool is_empty) = 0;
 };
 #endif /*IPSEC_OVSDB_H*/

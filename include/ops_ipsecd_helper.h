@@ -231,11 +231,9 @@ namespace ipsecd_helper
     /**
      * Set ip address from string
      *
-     * @param ip_addr_t Type
-     *
      * @param ip_number string with IP number on human-readable format
-     *
-     * @param family Type
+     * @param address ip_addr_t Type
+     * @param family Family Type
      */
     extern void set_str_to_ip_addr_t(const std::string& ip_number,
             uint16_t family, ip_addr_t& address);
@@ -252,6 +250,16 @@ namespace ipsecd_helper
      */
     extern bool str_to_ipsec_action(const std::string& str_action,
             ipsec_action& action);
+
+    /**
+     * Set string IP number on human-readable format from ip_addr_t
+     *
+     * @param address ip_addr_t Type
+     * @param family Family Type
+     * @param ip_number string to be modified
+     */
+    extern void set_ip_addr_t_to_str(ip_addr_t address, uint16_t family,
+            std::string& ip_number);
 }
 
 #endif /* OPS_IPSECD_HELPER_H */

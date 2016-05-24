@@ -544,4 +544,24 @@ namespace ipsecd_helper
         }
         return false;
     }
+
+    void set_ip_addr_t_to_str(ip_addr_t address, uint16_t family,
+            std::string& ip_number)
+    {
+        switch(family)
+        {
+            case AF_INET:
+                char ip[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &address.m_ipv4, ip, INET_ADDRSTRLEN);
+                ip_number.append(ip);
+                break;
+            case AF_INET6:
+                char ip_v6[INET6_ADDRSTRLEN];
+                inet_ntop(AF_INET6, &address.m_ipv6, ip_v6, INET6_ADDRSTRLEN);
+                ip_number.append(ip_v6);
+                break;
+            default:
+                break;
+        }
+    }
 }

@@ -368,6 +368,14 @@ class IIPsecOvsdbIDLWrapper
          */
         virtual const std::string rundir(void) = 0;
 
+        /**
+         * Initializes 'datum' as an empty datum. (An empty datum can be
+         * treated as any type.)
+         *
+         * @param datum Datum to be initialized
+         */
+        virtual void datum_init_empty(idl_datum_t datum) = 0;
+
         ///////////////////////////////////////////////////////////////
         //     VSWITCH specific functions for ops-ipsecd tables     //
         /////////////////////////////////////////////////////////////
