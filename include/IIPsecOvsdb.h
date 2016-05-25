@@ -195,6 +195,70 @@ class IIPsecOvsdb
                 const ipsec_manual_sp_t row, bool is_new) = 0;
 
         /**
+         * Delete a row from OVSDB ipsec_ike_policy table
+         *
+         * @param conn_name Name of the connection to be deleted from OVSDB
+         *
+         * @return ipsec_ret::OK if successfull, otherwise an error code
+         */
+        virtual ipsec_ret ipsec_ike_policy_delete_row(
+                const std::string& conn_name) = 0;
+
+        /**
+         * Get an IKE Policy from OVSDB ipsec_ike_policy table
+         *
+         * @param conn_name Name of the connection
+         * @param conn ipsec_ike_connection Type to store the OVSDB row
+         *
+         * @return ipsec_ret::OK if successfull, otherwise an error code
+         */
+        virtual ipsec_ret ipsec_ike_policy_get_row(
+                const std::string& conn_name, ipsec_ike_connection& conn) = 0;
+
+        /**
+         * Insert a new IKE Policy into OVSDB ipsec_ike_policy table
+         *
+         * @param conn ipsec_ike_connection Type to be inserted into OVSDB
+         *
+         * @return ipsec_ret::OK if successfull, otherwise an error code
+         */
+        virtual ipsec_ret ipsec_ike_policy_insert_row(
+                const ipsec_ike_connection& conn) = 0;
+
+        /**
+         * Replace every single column (except name) in a given row into the
+         * OVSDB server by the the values on conni
+         *
+         * @param conn IKE Policy to be updated
+         *
+         * @return ipsec_ret::OK if successfull, otherwise an error code
+         */
+        virtual ipsec_ret ipsec_ike_policy_modify_row(
+                const ipsec_ike_connection& conn) = 0;
+        /**
+         * Copy the information related to an IKE Policy into an OVSDB row
+         *
+         * @param conn ipsec_ike_connection Type
+         * @param row Row to be modified
+         * @param is_new true if conn name is going to be modified,
+         * false otherwise
+         *
+         * @return ipsec_ret::OK if successfull, otherwise an error code
+         */
+        virtual ipsec_ret ipsec_ike_conn_to_ovsrec(
+                const ipsec_ike_connection& conn,
+                const ipsec_ike_policy_t row, bool is_new) = 0;
+
+        /**
+         * Copy the information related to an IKE Policy row into conn
+         *
+         * @param row ipsec_ike_policy table row
+         * @param conn ipsec_ike_policy Type to be modified
+         */
+        virtual void ovsrec_to_ipsec_ike_conn(const ipsec_ike_policy_t row,
+                ipsec_ike_connection& conn) = 0;
+
+        /**
          * Copy the information related to a SP on row into sp
          *
          * @param row ipsec_manual_sp_t type

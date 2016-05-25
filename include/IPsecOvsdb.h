@@ -184,6 +184,42 @@ class IPsecOvsdb : public IIPsecOvsdb
                 const ipsec_manual_sp_t row, bool is_new) override;
 
         /**
+         * @copydoc IIPsecOvsdb::ipsec_ike_policy_delete_row
+         */
+        ipsec_ret ipsec_ike_policy_delete_row(
+                const std::string& conn_name) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::ipsec_ike_policy_get_row
+         */
+        ipsec_ret ipsec_ike_policy_get_row(const std::string& conn_name,
+                ipsec_ike_connection& conn) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::ipsec_ike_policy_insert_row
+         */
+        ipsec_ret ipsec_ike_policy_insert_row(
+                const ipsec_ike_connection& conn) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::ipsec_ike_policy_modify_row
+         */
+        ipsec_ret ipsec_ike_policy_modify_row(
+                const ipsec_ike_connection& conn) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::ipsec_ike_conn_to_ovsrec
+         */
+        ipsec_ret ipsec_ike_conn_to_ovsrec(const ipsec_ike_connection& conn,
+                const ipsec_ike_policy_t row, bool is_new) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::ovsrec_to_ipsec_ike_conn
+         */
+        void ovsrec_to_ipsec_ike_conn(const ipsec_ike_policy_t row,
+                ipsec_ike_connection& conn) override;
+
+        /**
          * @copydoc IIPsecOvsdb::ovsrec_to_ipsec_sp
          */
         void ovsrec_to_ipsec_sp(
