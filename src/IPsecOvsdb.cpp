@@ -321,10 +321,12 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sp_insert_row(const ipsec_sp& sp)
     /*Get a New row from the OVSDB*/
     sp_row = m_idl_wrapper.ipsec_manual_sp_insert(status_txn);
 
-    /*TODO: replace this with a template design*/
-    ovsrec_ipsec_manual_sp_set_src_prefix(sp_row, "172.1.1.1");
-    ovsrec_ipsec_manual_sp_set_dest_prefix(sp_row, "172.1.1.2");
-    ovsrec_ipsec_manual_sp_set_direction(sp_row, "in");
+    if (ipsec_sp_to_ovsrec(sp,
+                const_cast<ipsec_manual_sp_t>(sp_row), true) != ipsec_ret::OK)
+    {
+        m_idl_wrapper.idl_txn_destroy(status_txn);
+        return ipsec_ret::NULL_PARAMETERS;
+    }
 
     status = m_idl_wrapper.idl_txn_commit_block(status_txn);
 
@@ -347,7 +349,52 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sp_insert_row(const ipsec_sp& sp)
 ipsec_ret IPsecOvsdb::ipsec_manual_sp_delete_row(ipsec_direction dir,
                 const ipsec_selector& selector)
 {
-    ipsec_ret result = ipsec_ret::NOT_FOUND;
+    ipsec_ret result = ipsec_ret::DELETE_FAILED;
+    const struct ovsrec_ipsec_manual_sp *sp_row = nullptr;
+    enum ovsdb_idl_txn_status status;
+    idl_txn_t status_txn;
+    std::string dst_ip="";
+    std::string src_ip="";
+
+    /*New transaction to add a new row*/
+    status_txn = m_idl_wrapper.idl_txn_create(m_idl);
+
+    sp_row = m_idl_wrapper.ipsec_manual_sp_first(m_idl);
+    if(sp_row != nullptr)
+    {
+        ipsecd_helper::get_dst_selector(selector, dst_ip);
+        ipsecd_helper::get_src_selector(selector, src_ip);
+        OVSREC_IPSEC_MANUAL_SP_FOR_EACH(sp_row, m_idl)
+        {
+            if(strcmp(sp_row->direction,
+                        ipsecd_helper::direction_to_str(dir))==0 &&
+                    strcmp(sp_row->src_prefix, src_ip.c_str())==0 &&
+                    strcmp(sp_row->dest_prefix, dst_ip.c_str())==0)
+            {
+
+                m_idl_wrapper.idl_txn_delete(
+                        const_cast<idl_row_t>(&sp_row->header_));
+
+                status = m_idl_wrapper.idl_txn_commit_block(status_txn);
+                if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
+                {
+                    //TODO: add log
+                    printf("Deleting SP failed \n");
+                }
+                else
+                {
+                    //TODO: add log
+                    printf("Deleting, success\n\n");
+                    result = ipsec_ret::OK;
+                }
+
+                m_idl_wrapper.idl_txn_destroy(status_txn);
+                return result;
+            }
+        }
+    }
+
+    m_idl_wrapper.idl_txn_destroy(status_txn);
     return result;
 }
 
@@ -383,7 +430,56 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sp_get_row(ipsec_direction dir,
 
 ipsec_ret IPsecOvsdb::ipsec_manual_sp_modify_row(const ipsec_sp& sp)
 {
-    ipsec_ret result = ipsec_ret::ADD_FAILED;
+    ipsec_ret result = ipsec_ret::MODIFY_FAILED;
+    const struct ovsrec_ipsec_manual_sp *sp_row = nullptr;
+    enum ovsdb_idl_txn_status status;
+    idl_txn_t status_txn;
+    std::string dst_ip="";
+    std::string src_ip="";
+
+    /*New transaction to add a new row*/
+    status_txn = m_idl_wrapper.idl_txn_create(m_idl);
+
+    sp_row = m_idl_wrapper.ipsec_manual_sp_first(m_idl);
+    if(sp_row != nullptr)
+    {
+        ipsecd_helper::get_dst_selector(sp.m_id.m_selector, dst_ip);
+        ipsecd_helper::get_src_selector(sp.m_id.m_selector, src_ip);
+        OVSREC_IPSEC_MANUAL_SP_FOR_EACH(sp_row, m_idl)
+        {
+            if(strcmp(sp_row->direction,
+                        ipsecd_helper::direction_to_str(sp.m_id.m_dir))==0 &&
+                    strcmp(sp_row->src_prefix, src_ip.c_str())==0 &&
+                    strcmp(sp_row->dest_prefix, dst_ip.c_str())==0)
+            {
+                if (ipsec_sp_to_ovsrec(
+                            sp, const_cast<ipsec_manual_sp_t>(sp_row), false) \
+                        != ipsec_ret::OK)
+                {
+                    m_idl_wrapper.idl_txn_destroy(status_txn);
+                    return ipsec_ret::NULL_PARAMETERS;
+                }
+
+                status = m_idl_wrapper.idl_txn_commit_block(status_txn);
+
+                if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
+                {
+                    //TODO: add log
+                    printf("Updating SP failed \n");
+                }
+                else
+                {
+                    //TODO: add log
+                    printf("Updating SP, success\n\n");
+                    result = ipsec_ret::OK;
+                }
+                m_idl_wrapper.idl_txn_destroy(status_txn);
+                return result;
+            }
+        }
+    }
+
+    m_idl_wrapper.idl_txn_destroy(status_txn);
     return result;
 }
 
@@ -763,23 +859,25 @@ ipsec_ret IPsecOvsdb::ipsec_sa_to_ovsrec(const ipsec_sa& sa,
     if(sa.m_mode == ipsec_mode::tunnel)
     {
         set_string_to_column(&row->header_, &ovsrec_ipsec_manual_sa_col_mode,
-                "tunnel");
+                OVSREC_IPSEC_MANUAL_SA_MODE_TUNNEL);
     }
     else
     {
         set_string_to_column(&row->header_, &ovsrec_ipsec_manual_sa_col_mode,
-                "transport");
+                OVSREC_IPSEC_MANUAL_SA_MODE_TRANSPORT);
     }
     /*Protocol*/
     if(sa.m_id.m_protocol == static_cast<int>(ipsec_auth_method::ah))
     {
         set_string_to_column(&row->header_,
-                &ovsrec_ipsec_manual_sa_col_protocol, "AH");
+                &ovsrec_ipsec_manual_sa_col_protocol,
+                OVSREC_IPSEC_MANUAL_SA_PROTOCOL_AH);
     }
     else if(sa.m_id.m_protocol == static_cast<int>(ipsec_auth_method::esp))
     {
         set_string_to_column(&row->header_,
-                &ovsrec_ipsec_manual_sa_col_protocol,"ESP");
+                &ovsrec_ipsec_manual_sa_col_protocol,
+                OVSREC_IPSEC_MANUAL_SA_PROTOCOL_ESP);
     }
     else
     {
@@ -843,6 +941,167 @@ ipsec_ret IPsecOvsdb::ipsec_sa_to_ovsrec(const ipsec_sa& sa,
 ipsec_ret IPsecOvsdb::ipsec_sp_to_ovsrec(const ipsec_sp& sp,
         const ipsec_manual_sp_t row, bool is_new)
 {
+    struct smap ipsec_map;
+    std::string column = "";
+    std::vector<std::string> keys;
+
+    smap_init(&ipsec_map);
+
+    if(is_new)
+    {
+        /*selector values*/
+        if(sp.m_id.m_selector.m_addr_family == AF_INET)
+        {
+            set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_ip_family,
+                OVSREC_IPSEC_MANUAL_SP_IP_FAMILY_IPV4);
+        }
+        else
+        {
+            set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_ip_family,
+                OVSREC_IPSEC_MANUAL_SP_IP_FAMILY_IPV6);
+        }
+        ipsecd_helper::get_src_selector(sp.m_id.m_selector, column);
+        if (column.compare("") == 0)
+        {
+            return ipsec_ret::NULL_PARAMETERS;
+        }
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_src_prefix, column);
+        column.assign("");
+        ipsecd_helper::get_dst_selector(sp.m_id.m_selector, column);
+        if(column.compare("") == 0)
+        {
+            return ipsec_ret::NULL_PARAMETERS;
+        }
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_dest_prefix, column);
+        /*direction*/
+        column.assign(ipsecd_helper::direction_to_str(sp.m_id.m_dir));
+        if(column.compare("") == 0)
+        {
+            return ipsec_ret::NULL_PARAMETERS;
+        }
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_direction, column);
+    }
+    /*Action*/
+    column.assign("");
+    switch(sp.m_action)
+    {
+        case ipsec_action::allow:
+            set_string_to_column(&row->header_,
+                    &ovsrec_ipsec_manual_sp_col_action,
+                    OVSREC_IPSEC_MANUAL_SP_ACTION_IPSEC);
+            break;
+        case ipsec_action::block:
+            set_string_to_column(&row->header_,
+                    &ovsrec_ipsec_manual_sp_col_action,
+                    OVSREC_IPSEC_MANUAL_SP_ACTION_DISCARD);
+            break;
+        default:
+            return ipsec_ret::NULL_PARAMETERS;
+    }
+    /*priority*/
+    set_integer_to_column(&row->header_, &ovsrec_ipsec_manual_sp_col_priority,
+            sp.m_priority);
+
+    /*tmpl values sp.m_template_lists (just for the first element)*/
+    if(sp.m_template_lists.empty())
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+
+    switch(sp.m_template_lists.front().m_addr_family)
+    {
+        case AF_INET:
+            set_string_to_column(&row->header_,
+                    &ovsrec_ipsec_manual_sp_col_tmpl_ip_family,
+                    OVSREC_IPSEC_MANUAL_SP_TMPL_IP_FAMILY_IPV4);
+            break;
+        case AF_INET6:
+            set_string_to_column(&row->header_,
+                    &ovsrec_ipsec_manual_sp_col_tmpl_ip_family,
+                    OVSREC_IPSEC_MANUAL_SP_TMPL_IP_FAMILY_IPV6);
+            break;
+        default:
+            return ipsec_ret::NULL_PARAMETERS;
+    }
+
+    column.assign("");
+    ipsecd_helper::set_ip_addr_t_to_str(sp.m_template_lists.front().m_src_ip,
+            sp.m_template_lists.front().m_addr_family, column);
+    if(column.compare("") == 0)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    set_string_to_column(&row->header_,
+            &ovsrec_ipsec_manual_sp_col_tmpl_src_ip, column);
+    column.assign("");
+    ipsecd_helper::set_ip_addr_t_to_str(sp.m_template_lists.front().m_dst_ip,
+            sp.m_template_lists.front().m_addr_family, column);
+    if(column.compare("") == 0)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+    set_string_to_column(&row->header_,
+            &ovsrec_ipsec_manual_sp_col_tmpl_dest_ip, column);
+
+    if(sp.m_template_lists.front().m_protocol ==
+            static_cast<int>(ipsec_auth_method::ah))
+    {
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_tmpl_protocol,
+                OVSREC_IPSEC_MANUAL_SP_TMPL_PROTOCOL_AH);
+    }
+    else
+    {
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_tmpl_protocol,
+                OVSREC_IPSEC_MANUAL_SP_TMPL_PROTOCOL_ESP);
+    }
+    if(sp.m_template_lists.front().m_mode == ipsec_mode::transport)
+    {
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_tmpl_mode,
+                OVSREC_IPSEC_MANUAL_SP_TMPL_MODE_TRANSPORT);
+    }
+    else
+    {
+        set_string_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_tmpl_mode,
+                OVSREC_IPSEC_MANUAL_SP_TMPL_MODE_TUNNEL);
+    }
+
+    set_integer_to_column(&row->header_,
+            &ovsrec_ipsec_manual_sp_col_tmpl_request_id,
+            sp.m_template_lists.front().m_req_id);
+
+    /*stats*/
+    smap_add(&ipsec_map, "add_time",
+            std::to_string(sp.m_life_stats.m_add_time).c_str());
+    keys.push_back("add_time");
+
+    smap_add(&ipsec_map, "use_time",
+            std::to_string(sp.m_life_stats.m_use_time).c_str());
+    keys.push_back("use_time");
+
+    smap_add(&ipsec_map, "bytes",
+            std::to_string(sp.m_life_stats.m_bytes).c_str());
+    keys.push_back("bytes");
+
+    smap_add(&ipsec_map, "packets",
+            std::to_string(sp.m_life_stats.m_packets).c_str());
+    keys.push_back("packets");
+
+    if(set_map_to_column(&row->header_,
+                &ovsrec_ipsec_manual_sp_col_statistics,
+                &ipsec_map, keys, false) != ipsec_ret::OK)
+    {
+        return ipsec_ret::NULL_PARAMETERS;
+    }
+
     return ipsec_ret::OK;
 }
 
@@ -886,7 +1145,14 @@ void IPsecOvsdb::ovsrec_to_ipsec_sp(const ipsec_manual_sp_t row, ipsec_sp& sp)
     if(row->action != nullptr)
     {
         value.assign(row->action);
-        ipsecd_helper::str_to_ipsec_action(value, sp.m_action);
+        if(value.compare(OVSREC_IPSEC_MANUAL_SP_ACTION_IPSEC) == 0)
+        {
+            sp.m_action =  ipsec_action::allow;
+        }
+        else
+        {
+            sp.m_action = ipsec_action::block;
+        }
     }
     tmpl.m_req_id = (uint32_t)(row->tmpl_request_id);
     if(row->tmpl_ip_family != nullptr)
