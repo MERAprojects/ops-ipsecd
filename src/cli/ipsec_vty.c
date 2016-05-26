@@ -14,11 +14,14 @@
  * under the License.
  */
 
-#include "IPsecVty.h"
-#include "IPsecVtyIsaKmp.h"
-#include "ipsec_vty.h"
 
-extern "C" {
+#include <sys/un.h>
+#include <setjmp.h>
+#include <sys/wait.h>
+#include <pwd.h>
+
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "vtysh/lib/version.h"
 #include "getopt.h"
@@ -26,19 +29,25 @@ extern "C" {
 #include "vtysh/memory.h"
 #include "vtysh/vtysh.h"
 #include "vtysh/vtysh_user.h"
+#include "smap.h"
+#include "openvswitch/vlog.h"
 #include "vtysh/vtysh_ovsdb_if.h"
 #include "vtysh/vtysh_ovsdb_config.h"
+#include "openswitch-dflt.h"
+#include "ipsec_cli_wrapper.h"
 
+static void * ipsec_pol = NULL;
+static void * isakmp = NULL;
 
 static struct cmd_node ipsec_node =
 {
-  IPSEC_NODE,
+  IPSEC_IKE_NODE,
   "%s(config-ipsec)# "
 };
 
 static struct cmd_node ipsec_isakmp_node =
 {
-  IPSEC_ISAKMP_NODE,
+  IPSEC_IKE_ISAKMP_NODE,
   "%s(config-ipsec-isakmp)# "
 };
 
@@ -49,8 +58,28 @@ DEFUN(vtysh_ipsec_policy,
       "ipsec policy <NAME>",
       "Select or create an IKE IPsec policy\n")
 {
+    vty_ipsec_ret_t res = VTY_ERROR;
 
-    return CMD_SUCCESS;
+    vty->node = IPSEC_IKE_NODE;
+    vty->index = 0;
+
+    res = vty_policy_create(&ipsec_pol);
+
+    if (res == VTY_OK) {
+        res = vty_policy_id_set(ipsec_pol, "test");
+        if (res == VTY_OK) {
+            return CMD_SUCCESS;
+        }
+    }
+    return CMD_ERR_NOTHING_TODO;
+}
+
+DEFUN (vtysh_ipsec_exit,
+       vtysh_ipsec_exit_cmd,
+       "exit",
+       "Exit current mode and down to previous mode\n")
+{
+    return vtysh_exit (vty);
 }
 
 DEFUN(vtysh_ipsec_policy_desc,
@@ -67,7 +96,8 @@ DEFUN(vtysh_ipsec_isakmp,
       "isakmp",
       "Enter configuration for ISAKMP for an IPsec policy\n")
 {
-
+    vty->node = IPSEC_IKE_ISAKMP_NODE;
+    vty->index = 0;
     return CMD_SUCCESS;
 }
 
@@ -226,14 +256,20 @@ DEFUN(vtysh_ipsec_policy_disable,
 }
 
 //TODO: Changes in ops-cli repo, add subnode for isakmp
+void vtysh_ipsec_callback(void * priv_data)
+{
+    //TODO: delete this function
+}
+
 
 void cli_pre_init(void)
 {
     vtysh_ret_val retval = e_vtysh_error;
     install_node(&ipsec_node, NULL);
-    vtysh_install_default(IPSEC_NODE);
+    install_node(&ipsec_isakmp_node, NULL);
+    vtysh_install_default(IPSEC_IKE_NODE);
 
-    retval = install_show_run_config_context(e_vtysh_ipsec_context,
+    retval = install_show_run_config_context(e_vtysh_ipsec_ike_context,
                               &vtysh_ipsec_callback,
                               NULL, NULL);
     if(e_vtysh_ok != retval)
@@ -247,24 +283,23 @@ void cli_pre_init(void)
 void cli_post_init(void)
 {
     install_element(CONFIG_NODE, &vtysh_ipsec_policy_cmd);
-    install_element(IPSEC_NODE, &vtysh_ipsec_policy_desc_cmd);
-    install_element(IPSEC_NODE, &vtysh_ipsec_policy_mode_cmd);
-    install_element(IPSEC_NODE, &vtysh_ipsec_policy_esp_encrypt_cmd);
-    install_element(IPSEC_NODE, &vtysh_ipsec_policy_esp_hash_cmd);
-    install_element(IPSEC_NODE, &vtysh_ipsec_policy_enable_cmd);
-    install_element(IPSEC_NODE, &vtysh_ipsec_policy_disable_cmd);
-    install_element(IPSEC_NODE, &vtysh_ipsec_isakmp_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_ike_version_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_hash_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_encryption_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_auth_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_group_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_local_addr_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_remote_addr_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_local_id_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_remote_id_cmd);
-    install_element(IPSEC_ISAKMP_NODE, &vtysh_ipsec_isakmp_local_cert_cmd);
-}
-
-
+    install_element(IPSEC_IKE_NODE, &vtysh_ipsec_policy_desc_cmd);
+    install_element(IPSEC_IKE_NODE, &vtysh_ipsec_policy_mode_cmd);
+    install_element(IPSEC_IKE_NODE, &vtysh_ipsec_policy_esp_encrypt_cmd);
+    install_element(IPSEC_IKE_NODE, &vtysh_ipsec_policy_esp_hash_cmd);
+    install_element(IPSEC_IKE_NODE, &vtysh_ipsec_policy_enable_cmd);
+    install_element(IPSEC_IKE_NODE, &vtysh_ipsec_policy_disable_cmd);
+    install_element(IPSEC_IKE_NODE, &vtysh_ipsec_isakmp_cmd);
+    install_element(IPSEC_IKE_NODE, &vtysh_ipsec_exit_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_ike_version_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_hash_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_encryption_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_auth_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_group_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_local_addr_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_remote_addr_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_local_id_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_remote_id_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_isakmp_local_cert_cmd);
+    install_element(IPSEC_IKE_ISAKMP_NODE, &vtysh_ipsec_exit_cmd);
 }

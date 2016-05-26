@@ -28,46 +28,52 @@
 ***********************************/
 #include "IPsecVty.h"
 
-
-IPsecVtyIsaKmp::IPsecVtyIsaKmp(IIPsecVty IPsecPol)
+IPsecVty::IPsecVty()
 {
 
 }
 
-IPsecVtyIsaKmp::~IPsecVtyIsaKmp()
+IPsecVty::~IPsecVty()
 {
 
 }
 
-ipsec_ret IPsecVtyIsaKmp::vty_isakmp_version_set(
-        const ipsec_ike_version ike_version)
+ipsec_ret IPsecVty::vty_policy_id_set(const std::string& pol_id)
 {
     return ipsec_ret::OK;
 }
 
-ipsec_ret IPsecVtyIsaKmp::vty_isakmp_hash_set(const ipsec_integrity hash)
+ipsec_ret IPsecVty::vty_policy_id_get(const std::string& pol_id)
 {
     return ipsec_ret::OK;
 }
 
-ipsec_ret IPsecVtyIsaKmp::vty_isakmp_encryption_set(
-                const ipsec_cipher encryption)
+ipsec_ret IPsecVty::vty_policy_desc_set(const std::string& pol_desc)
 {
     return ipsec_ret::OK;
 }
 
-ipsec_ret IPsecVtyIsaKmp::vty_isakmp_group_set(
-                const ipsec_diffie_group group)
+ipsec_ret IPsecVty::vty_policy_mode_set(const ipsec_mode pol_mode)
 {
     return ipsec_ret::OK;
 }
 
-ipsec_ret IPsecVtyIsaKmp::vty_isakmp_localid_set(const string local_id)
+ipsec_ret IPsecVty::vty_policy_esp_hash_set(const ipsec_integrity hash)
 {
     return ipsec_ret::OK;
 }
 
-ipsec_ret IPsecVtyIsaKmp::vty_isakmp_remoteid_set(const string remote_id)
+ipsec_ret IPsecVty::vty_policy_esp_encrypt_set(const ipsec_cipher encryption)
+{
+    return ipsec_ret::OK;
+}
+
+ipsec_ret IPsecVty::vty_policy_enable()
+{
+    return ipsec_ret::OK;
+}
+
+ipsec_ret IPsecVty::vty_policy_disable()
 {
     return ipsec_ret::OK;
 }

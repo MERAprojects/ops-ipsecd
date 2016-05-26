@@ -41,14 +41,14 @@ class IPsecVtyIsaKmp: public IIPsecVtyIsaKmp
 
     protected:
     //TODO: Add attributes
-        IIPsecVty IPsecPol;
+        IIPsecVty& m_ipsec_pol;
     public:
         /**
          * Default constructor
          *
          * @param IPsecPol Existing IPsec policy
          */
-        IPsecVtyIsaKmp(IIPsecVty IPsecPol);
+        IPsecVtyIsaKmp(IPsecVty &ipsec_pol);
 
         /**
          * Default destructor
@@ -87,13 +87,13 @@ class IPsecVtyIsaKmp: public IIPsecVtyIsaKmp
         /**
          * @copydoc IIPsecVtyIsaKmp::vty_isakmp_localid_set
          */
-        ipsec_ret vty_isakmp_localid_set(const string local_id) override;
+        ipsec_ret vty_isakmp_localid_set(const std::string& local_id) override;
 
         /**
          * @copydoc IIPsecVtyIsaKmp::vty_isakmp_remoteid_set
          */
-        ipsec_ret vty_isakmp_remoteid_set(const string remote_id) override;
+        ipsec_ret vty_isakmp_remoteid_set(const std::string& remote_id) override;
 
         //TODO: define a Getter method
-}
+};
 #endif

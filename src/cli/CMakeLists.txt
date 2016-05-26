@@ -21,6 +21,14 @@ set (INCL_DIR ${CMAKE_SOURCE_DIR}/include)
 
 set (LIBIPSECCLI ipsec_cli)
 
+OPTION( CPU_LITTLE_ENDIAN "Specifies CPU architecture is Little-Endian" OFF )
+
+# Define compile flags
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -ggdb -g3 -O0")
+
+add_definitions(-DHAVE_CONFIG_H -DHAVE_SOCKLEN_T -DSYSCONFDIR=\"/etc/\")
+
+include(FindPkgConfig)
 pkg_check_modules(OVSCOMMON REQUIRED libovscommon)
 pkg_check_modules(OVSDB REQUIRED libovsdb)
 pkg_check_modules(OPSCLI REQUIRED ops-cli)
@@ -31,19 +39,13 @@ include_directories (${INCL_DIR}
                      ${OPSCLI_INCLUDE_DIRS}
                     )
 
-# Define compile flags
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -ggdb -g3 -O0")
-
 # CLI library source files
+
 set (SOURCES_CLI
-                 ${PROJECT_SOURCE_DIR}/ipsec_vty.cpp
-                 ${PROJECT_SOURCE_DIR}/IPsecVty.cpp
-                 ${PROJECT_SOURCE_DIR}/IPsecVtyIsaKmp.cpp
-    )
+                 ${PROJECT_SOURCE_DIR}/ipsec_vty.c)
 
 add_library (${LIBIPSECCLI} SHARED ${SOURCES_CLI})
 
 # Installation
 install(TARGETS ${LIBIPSECCLI}
-        LIBRARY DESTINATION lib/cli/plugins
-       )
+        LIBRARY DESTINATION lib/cli/plugins)

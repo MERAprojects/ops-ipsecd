@@ -20,7 +20,6 @@
 *System Includes
 **********************************/
 #include <string>
-#include "vtysh/vtysh_ovsdb_config.h"
 /**********************************
 *Local Includes
 **********************************/
@@ -52,17 +51,17 @@ class IPsecVty: public IIPsecVty
         /**
          * @copydoc IIPsecVty::vty_policy_id_set
          */
-        ipsec_ret vty_policy_id_set(const string pol_id) override;
+        ipsec_ret vty_policy_id_set(const std::string& pol_id) override;
 
         /**
          * @copydoc IIPsecVty::vty_policy_id_get
          */
-        ipsec_ret vty_policy_id_get(string& pol_id) override;
+        ipsec_ret vty_policy_id_get(const std::string& pol_id) override;
 
         /**
          * @copydoc IIPsecVty::vty_policy_desc_set
          */
-        ipsec_ret vty_policy_desc_set(const string pol_desc) override;
+        ipsec_ret vty_policy_desc_set(const std::string& pol_desc) override;
 
         /**
          * @copydoc IIPsecVty::vty_policy_mode_set
@@ -92,5 +91,5 @@ class IPsecVty: public IIPsecVty
         ipsec_ret vty_policy_disable() override;
 
         //TODO: define a Getter method
-}
+};
 #endif

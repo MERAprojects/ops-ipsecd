@@ -36,15 +36,13 @@ class IIPsecVtyIsaKmp
 
         /**
          * Constructor with Ipsec policy
-         *
-         * @param IPsecPol Current IPsec policy
          */
-        IIPsecVtyIsaKmp(IIPsecVty IPsecPol) {}
+        IIPsecVtyIsaKmp() {}
 
         /**
          * Default destructor
          */
-        ~IIPsecVtyIsaKmp() {}
+        virtual ~IIPsecVtyIsaKmp() {}
 
         /**
          * Set IKE version
@@ -102,7 +100,7 @@ class IIPsecVtyIsaKmp
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
-        virtual ipsec_ret vty_isakmp_localid_set(const string local_id) = 0;
+        virtual ipsec_ret vty_isakmp_localid_set(const std::string& local_id) = 0;
 
         /**
          * Set remote ID for IKE
@@ -111,7 +109,7 @@ class IIPsecVtyIsaKmp
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
-        virtual ipsec_ret vty_isakmp_remoteid_set(const string remote_id) = 0;
-}
+        virtual ipsec_ret vty_isakmp_remoteid_set(const std::string& remote_id) = 0;
+};
 
 #endif

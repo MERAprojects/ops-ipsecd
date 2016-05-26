@@ -91,6 +91,9 @@ set (SOURCES
         ${SRC_DIR}/ErrorNotifySS.cpp
         ${SRC_DIR}/IPsecOvsdbIDLWrapper.cpp
         ${SRC_DIR}/IPsecOvsdb.cpp
+        ${SRC_DIR}/IPsecVty.cpp
+        ${SRC_DIR}/IPsecVtyIsaKmp.cpp
+        ${SRC_DIR}/ipsec_cli_wrapper.cpp
 )
 
 # Rules to build ops-ipsecd
@@ -110,6 +113,8 @@ IF (DOXYGEN_FOUND)
 ENDIF()
 
 target_link_libraries (${IPSEC} ${OVSCOMMON_LIBRARIES} ${OVSDB_LIBRARIES} -lmnl -lvici -lpthread -lrt)
+
+add_subdirectory(src/cli)
 
 # Rules to install ops-ipsecd binary in rootfs
 install(TARGETS ${IPSEC}

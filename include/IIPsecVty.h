@@ -20,7 +20,6 @@
 *System Includes
 **********************************/
 #include <string>
-#include "vtysh/vtysh_ovsdb_config.h"
 /**********************************
 *Local Includes
 **********************************/
@@ -40,7 +39,7 @@ class IIPsecVty {
         /**
          * Default Destructor
          */
-        ~IIPsecVty() {}
+        virtual ~IIPsecVty() {}
 
         /**
          * Set id for new policy
@@ -49,7 +48,7 @@ class IIPsecVty {
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
-        virtual ipsec_ret vty_policy_id_set(const string pol_id) = 0;
+        virtual ipsec_ret vty_policy_id_set(const std::string& pol_id) = 0;
 
         /**
          * Set id for new policy
@@ -58,7 +57,7 @@ class IIPsecVty {
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
-        virtual ipsec_ret vty_policy_id_get(string& pol_id) = 0;
+        virtual ipsec_ret vty_policy_id_get(const std::string& pol_id) = 0;
 
         /**
          * Set description for IPsec policy
@@ -67,7 +66,7 @@ class IIPsecVty {
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
-        virtual ipsec_ret vty_policy_desc_set(const string pol_desc) = 0;
+        virtual ipsec_ret vty_policy_desc_set(const std::string& pol_desc) = 0;
 
         /**
          * Set IPsec mode (tunnel|transport)
@@ -112,6 +111,6 @@ class IIPsecVty {
          */
         virtual ipsec_ret vty_policy_disable() = 0;
 
-}
+};
 
 #endif
