@@ -31,8 +31,9 @@
 DebugMode *DebugMode::m_debugger = nullptr;
 
 DebugMode::DebugMode(IKEViciAPI& ikeviciApi, IPsecNetlinkAPI& ipsecNetlink,
-        int argc, char **argv)
-        : m_ikeviciApi(ikeviciApi), m_ipsecNetlink(ipsecNetlink)
+        IPsecOvsdb& ipsec_ovsdb, int argc, char **argv)
+        : m_ikeviciApi(ikeviciApi), m_ipsecNetlink(ipsecNetlink),
+        m_ipsec_ovsdb(ipsec_ovsdb)
 {
     argc_d = argc;
     argv_d = &argv[0];
@@ -104,30 +105,58 @@ ipsec_ret DebugMode::load_credential(const ipsec_credential& cred)
 
 ipsec_ret DebugMode::add_sa(const ipsec_sa& sa)
 {
-    return m_ipsecNetlink.add_sa(sa);
+    ipsec_ret result =  ipsec_ret::ERR;
+    result = m_ipsecNetlink.add_sa(sa);
+    if(result != ipsec_ret::OK)
+    {
+        return result;
+    }
+    return  m_ipsec_ovsdb.ipsec_manual_sa_insert_row(sa);
 }
 
 ipsec_ret  DebugMode::get_sa(uint32_t spi, ipsec_sa& sa)
 {
-    return m_ipsecNetlink.get_sa(spi, sa);
+    //m_ipsecNetlink.get_sa(spi, sa);
+    return m_ipsec_ovsdb.ipsec_manual_sa_get_row(spi, sa);
 }
 
 ipsec_ret  DebugMode::del_sa(const ipsec_sa_id& id)
 {
-    return m_ipsecNetlink.del_sa(id);
+    ipsec_ret result = ipsec_ret::ERR;
+    result = m_ipsecNetlink.del_sa(id);
+    if(result != ipsec_ret::OK)
+    {
+        return result;
+    }
+    return m_ipsec_ovsdb.ipsec_manual_sa_delete_row(id);
 }
 
 ipsec_ret  DebugMode::add_sp(const ipsec_sp& sp)
 {
-    return m_ipsecNetlink.add_sp(sp);
+    ipsec_ret result = ipsec_ret::ERR;
+    result = m_ipsecNetlink.add_sp(sp);
+    if(result != ipsec_ret::OK)
+    {
+        return result;
+    }
+    return m_ipsec_ovsdb.ipsec_manual_sp_insert_row(sp);
 }
 
 ipsec_ret  DebugMode::get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp)
 {
-    return m_ipsecNetlink.get_sp(sp_id, sp);
+    //m_ipsecNetlink.get_sp(sp_id, sp);
+    return m_ipsec_ovsdb.ipsec_manual_sp_get_row(sp_id.m_dir,
+            sp_id.m_selector, sp);
 }
 
 ipsec_ret  DebugMode::del_sp(const ipsec_sp_id& sp_id)
 {
-    return m_ipsecNetlink.del_sp(sp_id);
+    ipsec_ret result = ipsec_ret::ERR;
+    result = m_ipsecNetlink.del_sp(sp_id);
+    if(result != ipsec_ret::OK)
+    {
+        return result;
+    }
+    return m_ipsec_ovsdb.ipsec_manual_sp_delete_row(
+            sp_id.m_dir, sp_id.m_selector);
 }

@@ -410,10 +410,12 @@ namespace ipsecd_helper
                 add.sin_addr.s_addr = selector.m_src_addr.m_ipv4;
                 inet_ntop(AF_INET, &(add.sin_addr), ip_src, INET_ADDRSTRLEN);
                 src_ip.assign(ip_src);
+                break;
             case AF_INET6:
                 inet_ntop(AF_INET6, &(selector.m_src_addr.m_ipv6),
                         ip_src, INET_ADDRSTRLEN);
                  src_ip.assign(ip_src);
+                 break;
             default:
                 src_ip.assign("");
         }
@@ -430,10 +432,12 @@ namespace ipsecd_helper
                 add.sin_addr.s_addr = selector.m_dst_addr.m_ipv4;
                 inet_ntop(AF_INET, &(add.sin_addr), ip_dst, INET_ADDRSTRLEN);
                 dst_ip.assign(ip_dst);
+                break;
             case AF_INET6:
                 inet_ntop(AF_INET6, &(selector.m_dst_addr.m_ipv6),
                         ip_dst, INET_ADDRSTRLEN);
                 dst_ip.assign(ip_dst);
+                break;
             default:
                 dst_ip.assign("");
         }

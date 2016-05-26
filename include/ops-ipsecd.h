@@ -544,12 +544,12 @@ struct ipsec_lifetime_current
     /**
      * Amount of bytes processed
      */
-    uint64_t m_bytes;
+    uint64_t m_bytes = 0;
 
     /**
      * Amount of packets processed
      */
-    uint64_t m_packets;
+    uint64_t m_packets = 0;
 };
 
 struct ipsec_selector

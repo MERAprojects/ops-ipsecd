@@ -26,10 +26,11 @@
 /**********************************
 *Local Includes
 **********************************/
+#include "IPsecOvsdb.h"
 #include "ops-ipsecd.h"
 #include "IKEViciAPI.h"
-#include "UnixctlCommandsUtils.h"
 #include "IPsecNetlinkAPI.h"
+#include "UnixctlCommandsUtils.h"
 
 /**
 * Utilities for debugger mode
@@ -41,22 +42,21 @@ class DebugMode
         * Create  a new DebugMode instance
         *
         * @param ikeviciApi Reference to the main IKEViciAPI object
-        *
         * @param ipsecNetlink IPsecNetlinkAPI object
-        *
+        * @param ipsec_ovsdb Reference to the main IPsecOvsdb control object
         * @param argc Number of arguments taken from the command line
-        *
         * @param argv Arguments taken from the command line
         *
         * @return DebugMode instance
         */
         static DebugMode *createInst(IKEViciAPI& ikeviciApi,
-                IPsecNetlinkAPI& ipsecNetlink, int argc, char **argv)
+                IPsecNetlinkAPI& ipsecNetlink, IPsecOvsdb& ipsec_ovsdb,
+                int argc, char **argv)
         {
             if (m_debugger == NULL)
             {
                 m_debugger = new DebugMode(ikeviciApi, ipsecNetlink,
-                        argc, argv);
+                        ipsec_ovsdb, argc, argv);
             }
             return m_debugger;
         }
@@ -212,6 +212,11 @@ class DebugMode
         IPsecNetlinkAPI& m_ipsecNetlink;
 
         /**
+         * Reference to IPsecOvsdb Object
+         */
+        IPsecOvsdb& m_ipsec_ovsdb;
+
+        /**
         * Removed Copy Constructor
         */
         DebugMode(const DebugMode& orig) = delete;
@@ -224,14 +229,14 @@ class DebugMode
         /**
         * Constructor
         *
-        * @param ikeviciApi Reference to IKEViciAPI main object
-        *
+        * @param ikeviciApi Reference to the main IKEViciAPI object
+        * @param ipsecNetlink IPsecNetlinkAPI object
+        * @param ipsec_ovsdb Reference to the main IPsecOvsdb control object
         * @param argc Number of arguments taken from the command line
-        *
         * @param argv Arguments taken from the command line
-        */
+         */
         DebugMode(IKEViciAPI& ikeviciApi, IPsecNetlinkAPI& ipsecNetlink,
-                int argc, char **argv);
+                IPsecOvsdb& ipsec_ovsdb, int argc, char **argv);
 };
 
 #endif /*DEBUG_MODE_H*/

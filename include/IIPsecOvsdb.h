@@ -93,11 +93,12 @@ class IIPsecOvsdb
         /**
          * Delete a SA(row) from the OVSDB ipsec_manual_sa table
          *
-         * @param sa SA to be deleted from OVSDB
+         * @param m_id m_id to perform a lookup for this SA
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
-        virtual ipsec_ret ipsec_manual_sa_delete_row(const ipsec_sa& sa) = 0;
+        virtual ipsec_ret ipsec_manual_sa_delete_row(
+                const ipsec_sa_id& m_id) = 0;
 
         /**
          * Get a SA(row) from the OVSDB ipsec_manual_sa table

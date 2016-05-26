@@ -123,7 +123,7 @@ int main( int argc, const char* argv[] )
     /////////////////////////
     //Create Debug Class
     DebugMode* debugger = DebugMode::createInst(
-            ikeViciApi, ipsec_netlink, argc, (char **) argv);
+            ikeViciApi, ipsec_netlink, ovsdb_control, argc, (char **) argv);
 
     while(g_IsRunning && debugger->uccIsRunning())
     {

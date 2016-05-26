@@ -245,7 +245,7 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sa_get_row(
     return ipsec_ret::NOT_FOUND;
 }
 
-ipsec_ret IPsecOvsdb::ipsec_manual_sa_delete_row(const ipsec_sa& sa)
+ipsec_ret IPsecOvsdb::ipsec_manual_sa_delete_row(const ipsec_sa_id& m_id)
 {
     ipsec_ret result = ipsec_ret::DELETE_FAILED;
     const struct ovsrec_ipsec_manual_sa *sa_row = nullptr;
@@ -261,7 +261,7 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sa_delete_row(const ipsec_sa& sa)
         OVSREC_IPSEC_MANUAL_SA_FOR_EACH(sa_row, m_idl)
         {
             /*SA must be deleted*/
-            if(sa_row->SPI == sa.m_id.m_spi)
+            if(sa_row->SPI == m_id.m_spi)
             {
                 m_idl_wrapper.idl_txn_delete(const_cast<idl_row_t>(&sa_row->header_));
 
@@ -410,18 +410,17 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sp_get_row(ipsec_direction dir,
     sp_row = m_idl_wrapper.ipsec_manual_sp_first(m_idl);
     if(sp_row != nullptr)
     {
-        ipsecd_helper::get_dst_selector(sp.m_id.m_selector, dst_ip);
-        ipsecd_helper::get_src_selector(sp.m_id.m_selector, src_ip);
+        ipsecd_helper::get_dst_selector(selector, dst_ip);
+        ipsecd_helper::get_src_selector(selector, src_ip);
         OVSREC_IPSEC_MANUAL_SP_FOR_EACH(sp_row, m_idl)
         {
             if(strcmp(sp_row->direction,
-                        ipsecd_helper::direction_to_str(sp.m_id.m_dir))==0 &&
+                        ipsecd_helper::direction_to_str(dir))==0 &&
                     strcmp(sp_row->src_prefix, src_ip.c_str())==0 &&
                     strcmp(sp_row->dest_prefix, dst_ip.c_str())==0)
             {
                 ovsrec_to_ipsec_sp(const_cast<ipsec_manual_sp_t>(sp_row), sp);
-                result = ipsec_ret::OK;
-                return result;
+                return ipsec_ret::OK;
             }
         }
     }
@@ -845,6 +844,14 @@ ipsec_ret IPsecOvsdb::ipsec_sa_to_ovsrec(const ipsec_sa& sa,
         column.assign(sa.m_crypt.m_name);
         std::transform(
                 column.begin(), column.end(), column.begin(), ::toupper);
+        if(column.compare("AES") == 0)
+        {
+            column.append("128");
+        }
+        else
+        {
+            column.append("256");
+        }
         if(set_string_to_column(&row->header_,
                     &ovsrec_ipsec_manual_sa_col_encryption,
                     column) != ipsec_ret::OK)

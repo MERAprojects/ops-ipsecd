@@ -131,7 +131,7 @@ class IPsecOvsdb : public IIPsecOvsdb
         /**
          * @copydoc IIPsecOvsdb::ipsec_manual_sa_delete_row
          */
-        ipsec_ret ipsec_manual_sa_delete_row(const ipsec_sa& sa) override;
+        ipsec_ret ipsec_manual_sa_delete_row(const ipsec_sa_id& m_id) override;
 
         /**
          * @copydoc IIPsecOvsdb::ipsec_manual_sa_get_row

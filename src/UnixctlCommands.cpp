@@ -463,6 +463,7 @@ ipsec_ret ipsec_ucc_get_sp_subcmd(int argc, const char **argv,
                         {
                             return result;
                         }
+                        sp_id.m_selector.m_addr_family = AF_INET;
                     }
 
                     else
@@ -1785,6 +1786,7 @@ ipsec_ret ipsecd_ucc_sa(int argc, const char **argv, std::string &message)
     {
         /*TODO: remove default values*/
         sa.m_id.m_addr_family = AF_INET;
+        sa.m_selector.m_addr_family = AF_INET;
         /*Debug purpose*/
         if (debugger->isEnable())
         {
