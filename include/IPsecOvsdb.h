@@ -253,6 +253,34 @@ class IPsecOvsdb : public IIPsecOvsdb
         ipsec_ret set_map_to_column(const idl_row_t row, idl_column_t column,
                 const struct smap *ipsec_map,
                 const std::vector<std::string>& keys, bool is_empty) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::get_sp_stats
+         */
+        ipsec_ret get_sp_stats(ipsec_direction dir,
+                const ipsec_selector& selector,
+                ipsec_lifetime_current& stats) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::modify_sp_stats
+         */
+        ipsec_ret modify_sp_stats(ipsec_direction dir,
+                const ipsec_selector& selector,
+                const std::string& stat_name,
+                const std::string& value) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::get_sa_stats
+         */
+        ipsec_ret get_sa_stats(int64_t spi,
+                ipsec_sa_sp_lifetime_current& lifetime_current,
+                ipsec_sa_sp_stats& stats) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::modify_sa_stats
+         */
+        ipsec_ret modify_sa_stats(int64_t spi, const std::string& stat_name,
+                const std::string& value) override;
 };
 
 #endif /*IPSEC_OVSDB*/

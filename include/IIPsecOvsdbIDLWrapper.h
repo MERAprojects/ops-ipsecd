@@ -540,5 +540,30 @@ class IIPsecOvsdbIDLWrapper
          */
         virtual const ipsec_ike_policy_t ipsec_ike_policy_track_get_next(
                 const ipsec_ike_policy_t row) = 0;
+
+        /**
+         * Sets an element of the "statistics" map column from the
+         * "IPsec_Manual_SP" table in 'row' to 'new_value' given the key
+         * value 'new_key'.
+         *
+         * @param row IPsec_Manual_SP table row
+         * @param new_key Key to perform a lookup into statistics map
+         * @param new_value New value for new_key
+         */
+        virtual void ipsec_manual_sp_update_statistics_setkey(
+                const ipsec_manual_sp_t row,
+                char *new_key, char *new_value) = 0;
+        /**
+         * Sets an element of the "statistics" map column from the
+         * "IPsec_Manual_SA" table in 'row' to 'new_value' given the key
+         * value 'new_key'.
+         *
+         * @param row IPsec_Manual_SA table row
+         * @param new_key Key to perform a lookup into statistics map
+         * @param new_value New value for new_key
+         */
+        virtual void ipsec_manual_sa_update_statistics_setkey(
+                const ipsec_manual_sa_t row,
+                char *new_key, char *new_value) = 0;
 };
 #endif/*_IPSECOVSDBIDL_WRAPPER_H*/

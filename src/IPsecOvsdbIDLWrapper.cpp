@@ -313,3 +313,15 @@ const ipsec_ike_policy_t IPsecOvsdbIDLWrapper::ipsec_ike_policy_track_get_next(
     return const_cast<ipsec_ike_policy_t>(
             ovsrec_ipsec_ike_policy_track_get_next(row));
 }
+
+void IPsecOvsdbIDLWrapper::ipsec_manual_sp_update_statistics_setkey(
+        const ipsec_manual_sp_t row, char *new_key, char *new_value)
+{
+    ovsrec_ipsec_manual_sp_update_statistics_setkey(row, new_key, new_value);
+}
+
+void IPsecOvsdbIDLWrapper::ipsec_manual_sa_update_statistics_setkey(
+                const ipsec_manual_sa_t row, char *new_key, char *new_value)
+{
+    ovsrec_ipsec_manual_sa_update_statistics_setkey(row, new_key, new_value);
+}

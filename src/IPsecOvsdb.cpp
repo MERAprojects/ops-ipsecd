@@ -756,6 +756,7 @@ void IPsecOvsdb::ovsrec_to_ipsec_sa(const ipsec_manual_sa_t row,
         sa.m_lifetime_current.m_packets = std::stoi(
                 smap_get(&row->statistics, "packets"), nullptr, 0);
     }
+    /*stats, m_stats*/
     if(smap_get(&row->statistics,"replay_window") != nullptr)
     {
         sa.m_stats.m_replay_window = std::stoi(
@@ -1778,4 +1779,240 @@ void IPsecOvsdb::ovsrec_to_ipsec_ike_conn(const ipsec_ike_policy_t row,
         }
     }
     /*TODO: get keep_alive_seconds and **psk_selectors values*/
+}
+
+ipsec_ret IPsecOvsdb::get_sp_stats(ipsec_direction dir,
+        const ipsec_selector& selector, ipsec_lifetime_current& stats)
+{
+    const struct ovsrec_ipsec_manual_sp *sp_row = nullptr;
+    struct smap ipsec_map;
+    std::string dst_ip="";
+    std::string src_ip="";
+
+
+    sp_row = m_idl_wrapper.ipsec_manual_sp_first(m_idl);
+    if(sp_row != nullptr)
+    {
+        ipsecd_helper::get_dst_selector(selector, dst_ip);
+        ipsecd_helper::get_src_selector(selector, src_ip);
+        OVSREC_IPSEC_MANUAL_SP_FOR_EACH(sp_row, m_idl)
+        {
+            if(strcmp(sp_row->direction,
+                        ipsecd_helper::direction_to_str(dir))==0 &&
+                    strcmp(sp_row->src_prefix, src_ip.c_str())==0 &&
+                    strcmp(sp_row->dest_prefix, dst_ip.c_str())==0)
+            {
+                smap_init(&ipsec_map);
+                /*Geting stats*/
+                if(smap_get(&sp_row->statistics,"add_time") != nullptr)
+                {
+                    stats.m_add_time = std::stoi(
+                            smap_get(
+                                &sp_row->statistics,"add_time"), nullptr, 0);
+                }
+                if(smap_get(&sp_row->statistics,"use_time") != nullptr)
+                {
+                    stats.m_use_time = std::stoi(
+                           smap_get(
+                               &sp_row->statistics, "use_time"), nullptr, 0);
+                }
+                if(smap_get(&sp_row->statistics,"bytes") != nullptr)
+                {
+                    stats.m_bytes = std::stoi(
+                            smap_get(
+                                &sp_row->statistics, "bytes"), nullptr, 0);
+                }
+                if(smap_get(&sp_row->statistics,"packets") != nullptr)
+                {
+                    stats.m_packets = std::stoi(
+                            smap_get(
+                                &sp_row->statistics, "packets"), nullptr, 0);
+                }
+                return ipsec_ret::OK;
+            }
+        }
+    }
+    return ipsec_ret::NOT_FOUND;
+}
+
+ipsec_ret IPsecOvsdb::modify_sp_stats(ipsec_direction dir,
+        const ipsec_selector& selector, const std::string& stat_name,
+        const std::string& value)
+{
+    ipsec_ret result = ipsec_ret::MODIFY_FAILED;
+    const struct ovsrec_ipsec_manual_sp *sp_row = nullptr;
+    enum ovsdb_idl_txn_status status;
+    idl_txn_t status_txn;
+    std::string dst_ip="";
+    std::string src_ip="";
+
+    /*New transaction to add a new row*/
+    status_txn = m_idl_wrapper.idl_txn_create(m_idl);
+
+    sp_row = m_idl_wrapper.ipsec_manual_sp_first(m_idl);
+    if(sp_row != nullptr)
+    {
+        ipsecd_helper::get_dst_selector(selector, dst_ip);
+        ipsecd_helper::get_src_selector(selector, src_ip);
+        OVSREC_IPSEC_MANUAL_SP_FOR_EACH(sp_row, m_idl)
+        {
+            if(strcmp(sp_row->direction,
+                        ipsecd_helper::direction_to_str(dir))==0 &&
+                    strcmp(sp_row->src_prefix, src_ip.c_str())==0 &&
+                    strcmp(sp_row->dest_prefix, dst_ip.c_str())==0)
+            {
+                /*If the key is not found*/
+                if (smap_get(&sp_row->statistics,
+                            stat_name.c_str()) == nullptr)
+                {
+                    m_idl_wrapper.idl_txn_destroy(status_txn);
+                    return ipsec_ret::SSTAT_FAILED;
+                }
+
+                m_idl_wrapper.ipsec_manual_sp_update_statistics_setkey(
+                        const_cast<ipsec_manual_sp_t>(sp_row),
+                        const_cast<char*>(stat_name.c_str()),
+                        const_cast<char*>(value.c_str()));
+
+                status = m_idl_wrapper.idl_txn_commit_block(status_txn);
+
+                if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
+                {
+                    //TODO: add log
+                    printf("Updating SP statistic failed \n");
+                }
+                else
+                {
+                    //TODO: add log
+                    printf("Updating SP, success\n\n");
+                    result = ipsec_ret::OK;
+                }
+                m_idl_wrapper.idl_txn_destroy(status_txn);
+                return result;
+            }
+        }
+    }
+
+    m_idl_wrapper.idl_txn_destroy(status_txn);
+    return result;
+}
+
+ipsec_ret IPsecOvsdb::get_sa_stats(int64_t spi,
+        ipsec_sa_sp_lifetime_current& lifetime_current,
+        ipsec_sa_sp_stats& stats)
+{
+    const struct ovsrec_ipsec_manual_sa *sa_row = nullptr;
+
+    sa_row = m_idl_wrapper.ipsec_manual_sa_first(m_idl);
+    if(sa_row != nullptr)
+    {
+        OVSREC_IPSEC_MANUAL_SA_FOR_EACH(sa_row, m_idl)
+        {
+            if(sa_row->SPI == spi)
+            {
+                /*stats, m_lifetime_current*/
+                if(smap_get(&sa_row->statistics,"add_time") != nullptr)
+                {
+                    lifetime_current.m_add_time = std::stoi(
+                            smap_get(
+                                &sa_row->statistics,"add_time"), nullptr, 0);
+                }
+                if(smap_get(&sa_row->statistics,"use_time") != nullptr)
+                {
+                    lifetime_current.m_use_time = std::stoi(
+                            smap_get(
+                                &sa_row->statistics, "use_time"), nullptr, 0);
+                }
+                if(smap_get(&sa_row->statistics,"bytes") != nullptr)
+                {
+                    lifetime_current.m_bytes = std::stoi(
+                            smap_get(
+                                &sa_row->statistics, "bytes"), nullptr, 0);
+                }
+                if(smap_get(&sa_row->statistics,"packets") != nullptr)
+                {
+                    lifetime_current.m_packets = std::stoi(
+                            smap_get(
+                                &sa_row->statistics, "packets"), nullptr, 0);
+                }
+                /*stats, m_stats*/
+                if(smap_get(&sa_row->statistics,"replay_window") != nullptr)
+                {
+                    stats.m_replay_window = std::stoi(
+                            smap_get(&sa_row->statistics,
+                                "replay_window"), nullptr, 0);
+                }
+                if(smap_get(&sa_row->statistics,"replay") != nullptr)
+                {
+                    stats.m_replay = std::stoi(
+                            smap_get(
+                                &sa_row->statistics,"replay"), nullptr, 0);
+                }
+
+                if(smap_get(&sa_row->statistics,"integrity_failed") != nullptr)
+                {
+                    stats.m_integrity_failed = std::stoi(
+                            smap_get(&sa_row->statistics,
+                                "integrity_failed"), nullptr, 0);
+                }
+                return ipsec_ret::OK;
+            }
+        }
+    }
+
+    return ipsec_ret::NOT_FOUND;
+}
+
+ipsec_ret IPsecOvsdb::modify_sa_stats(int64_t spi,
+        const std::string& stat_name, const std::string& value)
+{
+    ipsec_ret result = ipsec_ret::MODIFY_FAILED;
+    const struct ovsrec_ipsec_manual_sa *sa_row = nullptr;
+    enum ovsdb_idl_txn_status status;
+    idl_txn_t status_txn;
+
+   /* New transaction to add a new row*/
+    status_txn = m_idl_wrapper.idl_txn_create(m_idl);
+
+    sa_row = m_idl_wrapper.ipsec_manual_sa_first(m_idl);
+    if(sa_row != nullptr)
+    {
+        OVSREC_IPSEC_MANUAL_SA_FOR_EACH(sa_row, m_idl)
+        {
+            /*SA is going to be modified*/
+            if(sa_row->SPI == spi)
+            {
+                /*stats_name is not a valid key*/
+                if (smap_get(&sa_row->statistics,
+                            stat_name.c_str()) == nullptr)
+                {
+                    m_idl_wrapper.idl_txn_destroy(status_txn);
+                    return ipsec_ret::NULL_PARAMETERS;
+                }
+                m_idl_wrapper.ipsec_manual_sa_update_statistics_setkey(
+                        const_cast<ipsec_manual_sa_t>(sa_row),
+                        const_cast<char*>(stat_name.c_str()),
+                        const_cast<char*>(value.c_str()));
+
+                status = m_idl_wrapper.idl_txn_commit_block(status_txn);
+                if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
+                {
+                    //TODO: add log
+                    printf("Updating SA statistics failed \n");
+                }
+                else
+                {
+                    //TODO: add log
+                    printf("Updating, success\n\n");
+                    result = ipsec_ret::OK;
+                }
+
+                m_idl_wrapper.idl_txn_destroy(status_txn);
+                return result;
+            }
+        }
+    }
+
+    m_idl_wrapper.idl_txn_destroy(status_txn);
+    return result;
 }

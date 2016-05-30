@@ -298,6 +298,20 @@ class IPsecOvsdbIDLWrapper: public IIPsecOvsdbIDLWrapper
          */
         const ipsec_ike_policy_t ipsec_ike_policy_track_get_next(
                 const ipsec_ike_policy_t row) override;
+
+        /**
+         * @copydoc IIPsecOvsdbIDLWrapper::ipsec_manual_sp_update_statistics_setkey
+         */
+        void ipsec_manual_sp_update_statistics_setkey(
+                const ipsec_manual_sp_t row,
+                char *new_key, char *new_value) override;
+
+        /**
+         * @copydoc IIPsecOvsdbIDLWrapper::ipsec_manual_sa_update_statistics_setkey
+         */
+        void ipsec_manual_sa_update_statistics_setkey(
+                const ipsec_manual_sa_t row,
+                char *new_key, char *new_value) override;
 };
 
 #endif /*IPSECOVSDBIDLWRAPPER_H*/

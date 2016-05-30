@@ -147,6 +147,7 @@ class IIPsecOvsdb
          *
          * @param dir ipsec_direction type
          * @param selector Selector data
+         * @param sp ipsec_sp Type to store the OVSDB row
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
@@ -187,7 +188,7 @@ class IIPsecOvsdb
          * Copy the information related to a SP on sp into row
          *
          * @param row ipsec_manual_sp_t type
-         * @param sa ipsec_sp type to be modified
+         * @param sp ipsec_sp type to be modified
          * @param is_new true if sp is going to be a new row, false otherwise
          *
          * @return ipsec_ret::OK if successfull, otherwise an error code
@@ -263,7 +264,7 @@ class IIPsecOvsdb
          * Copy the information related to a SP on row into sp
          *
          * @param row ipsec_manual_sp_t type
-         * @param sa ipsec_sp type to be modified
+         * @param sp ipsec_sp type to be modified
          */
         virtual void ovsrec_to_ipsec_sp(
                 const ipsec_manual_sp_t row, ipsec_sp& sp) = 0;
@@ -280,7 +281,7 @@ class IIPsecOvsdb
         /**
          * Handler used when any row from the OVSDB has been modified
          *
-         * @param ipsec_events type
+         * @param event ipsec_events type
          *
          * @return ipsec_ret::OK if successful, otherwise an error code
          */
@@ -318,7 +319,7 @@ class IIPsecOvsdb
          * @param column Field to be modified in 'row'
          * @param ipsec_map New map on 'column'
          * @param keys Set of keys for ipsec_map smap
-         * @param empty If true, send a empty datum OVSDB, if false ipsec_map
+         * @param is_empty If true, send a empty datum OVSDB, if false ipsec_map
          * must have at least one key-value pair
          *
          * @return ipsec_ret::NULL_PARAMETERS if ipsec_map is nullptr and
@@ -327,5 +328,59 @@ class IIPsecOvsdb
         virtual ipsec_ret set_map_to_column(const idl_row_t row,
                 idl_column_t column, const struct smap *ipsec_map,
                 const std::vector<std::string>& keys, bool is_empty) = 0;
+        /**
+         * Get the statistics from a given OVSDB IPsec_Manual_SP row
+         *
+         * @param dir ipsec_direction Type for the required sp
+         * @param selector ipsec_selector Type for the required sp
+         * @param stats ipsec_lifetime_current Type to store the information
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret get_sp_stats(ipsec_direction dir,
+                const ipsec_selector& selector,
+                ipsec_lifetime_current& stats) = 0;
+
+        /**
+         * Modify a statistic value given by stat_name in an OVSDB
+         * IPsec_Manual_SP row with dir and selector
+         *
+         * @param dir ipsec_direction Type for the required sp
+         * @param selector ipsec_selector Type for the required sp
+         * @param stat_name key for statistic smap
+         * @param value New value for pair with 'key' in statistics smap
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+          */
+        virtual ipsec_ret modify_sp_stats(ipsec_direction dir,
+                const ipsec_selector& selector,
+                const std::string& stat_name,
+                const std::string& value) = 0;
+
+        /**
+         * Get the statistics from a given OVSDB IPsec_Manual_SA row
+         *
+         * @param spi The SPI for the required SA
+         * @param stats ipsec_lifetime_current Type to store the information
+         * @param stats ipsec_sa_sp_stats Type to store the information
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret get_sa_stats(int64_t spi,
+                ipsec_sa_sp_lifetime_current& lifetime_current,
+                ipsec_sa_sp_stats& stats) = 0;
+
+        /**
+         * Modify a statistic value given by stat_name in an OVSDB
+         * IPsec_Manual_SA row with spi
+         *
+         * @param spi The SPI for the required SA
+         * @param stat_name key for statistic smap
+         * @param value New value for pair with 'key' in statistics smap
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+          */
+        virtual ipsec_ret modify_sa_stats(int64_t spi,
+                const std::string& stat_name, const std::string& value) = 0;
 };
 #endif /*IPSEC_OVSDB_H*/

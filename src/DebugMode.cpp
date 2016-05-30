@@ -72,7 +72,13 @@ void DebugMode::ucc_destroy()
 
 ipsec_ret DebugMode::create_connection(const ipsec_ike_connection& conn)
 {
-    return m_ikeviciApi.create_connection(conn);
+    ipsec_ret result = ipsec_ret::ERR;
+    result = m_ikeviciApi.create_connection(conn);
+    if(result != ipsec_ret::OK)
+    {
+        return result;
+    }
+    return m_ipsec_ovsdb.ipsec_ike_policy_insert_row(conn);
 }
 
 ipsec_ret DebugMode::stop_connection(const std::string& conn_name,
@@ -83,7 +89,13 @@ ipsec_ret DebugMode::stop_connection(const std::string& conn_name,
 
 ipsec_ret DebugMode::delete_connection(const std::string& conn_name)
 {
-    return m_ikeviciApi.delete_connection(conn_name);
+    ipsec_ret result = ipsec_ret::ERR;
+    result = m_ikeviciApi.delete_connection(conn_name);
+    if(result != ipsec_ret::OK)
+    {
+        return result;
+    }
+    return m_ipsec_ovsdb.ipsec_ike_policy_delete_row(conn_name);
 }
 
 ipsec_ret DebugMode::start_connection(const std::string& conn_name,
