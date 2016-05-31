@@ -382,5 +382,58 @@ class IIPsecOvsdb
           */
         virtual ipsec_ret modify_sa_stats(int64_t spi,
                 const std::string& stat_name, const std::string& value) = 0;
+        /**
+         * Modify a column with index 'column_id' on IPsec_Manual_SA table.
+         * This method perform a lookup on this table using sa.m_id.m_spi as a
+         * key, It is the caller responsibility set the correct value for this
+         * field. The caller must be sure that the 'sa' member modified match
+         * with column_id before to call this method. This function do
+         * not perform any changes on 'smap' members of IPsec_Manual_SP.
+         *
+         * @param sa ipsec_sa Type with the desire spi and the value of the
+         * member to modify on OVSDB
+         * @param column_id index of column on IPsec_Manual_SA table
+         * to be modified
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+         */
+        virtual ipsec_ret ipsec_manual_sa_modify_column(const ipsec_sa& sa,
+                ovsrec_ipsec_manual_sa_column_id column_id) = 0;
+
+       /**
+         * Modify a column with index 'column_id' on IPsec_Manual_SP table.
+         * This method perform a lookup on this table using sp.m_id as a
+         * key, It is the caller responsibility set the correct values for
+         * these fields. The caller must be sure that the 'sp' member modified
+         * match with column_id before to call this method. This function do
+         * not perform any changes on 'smap' members of IPsec_Manual_SP.
+         *
+         * @param sp ipsec_sp Type with the desire sp.m_id and the value of the
+         * member to modify on OVSDB
+         * @param column_id index of column on IPsec_Manual_SP table
+         * to be modified
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+        */
+       virtual ipsec_ret ipsec_manual_sp_modify_column(const ipsec_sp& sp,
+               ovsrec_ipsec_manual_sp_column_id column_id) = 0;
+
+      /**
+         * Modify a column with index 'column_id' on IPsec_IKE_Policy table.
+         * This method perform a lookup on this table using conn.m_name as a
+         * key, It is the caller responsibility set the correct value for
+         * this field. The caller must be sure that the 'conn' member modified
+         * match with column_id before to call this method
+         *
+         * @param conn ipsec_ike_connection Type with the desire name and the
+         * value of the member to modify
+         * @param column_id index of column on IPsec_IKE_Policy table
+         * to be modified
+         *
+         * @return ipsec_ret::OK if successful, otherwise an error code
+       */
+      virtual ipsec_ret ipsec_ike_policy_modify_column(
+              const ipsec_ike_connection& conn,
+              ovsrec_ipsec_ike_policy_column_id) = 0;
 };
 #endif /*IPSEC_OVSDB_H*/

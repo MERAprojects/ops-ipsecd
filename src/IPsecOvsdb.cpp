@@ -99,7 +99,8 @@ ipsec_ret IPsecOvsdb::run()
             update_cache(m_idl_seqno);
             m_is_ready = true;
             /*TODO: add log info*/
-            printf("Updating ops-ipsecd tables cache from OVSDB server.... done \n");
+            printf("Updating ops-ipsecd tables cache from \
+                    OVSDB server.... done \n");
         }
     }
 
@@ -2015,4 +2016,389 @@ ipsec_ret IPsecOvsdb::modify_sa_stats(int64_t spi,
 
     m_idl_wrapper.idl_txn_destroy(status_txn);
     return result;
+}
+
+ipsec_ret IPsecOvsdb::ipsec_manual_sa_modify_column(const ipsec_sa& sa,
+        ovsrec_ipsec_manual_sa_column_id column_id)
+{
+    const struct ovsrec_ipsec_manual_sa *row = nullptr;
+    enum ovsdb_idl_txn_status status;
+    idl_txn_t status_txn;
+    ipsec_ret result =  ipsec_ret::MODIFY_FAILED;
+    std::string column = "";
+
+   // New transaction to add a new row
+    status_txn = m_idl_wrapper.idl_txn_create(m_idl);
+
+    row = m_idl_wrapper.ipsec_manual_sa_first(m_idl);
+    if(row != nullptr)
+    {
+        OVSREC_IPSEC_MANUAL_SA_FOR_EACH(row, m_idl)
+        {
+            // SA is going to be modified
+            if(row->SPI == sa.m_id.m_spi)
+            {
+                switch(column_id)
+                {
+                    case OVSREC_IPSEC_MANUAL_SA_COL_AUTH_KEY:
+                        if(set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sa_col_auth_key,
+                                    sa.m_auth.m_key) != ipsec_ret::OK)
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SA_COL_AUTHENTICATION:
+                        column.assign(sa.m_auth.m_name);
+                        std::transform(column.begin(), column.end(),
+                                column.begin(), ::toupper);
+                        // add "HMAC" string
+                        column.append("HMAC");
+                        if(set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sa_col_authentication,
+                                    column) != ipsec_ret::OK)
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SA_COL_ENCR_KEY:
+                        column.assign(sa.m_crypt.m_key);
+                        if(set_string_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_manual_sa_col_encr_key,
+                                column) != ipsec_ret::OK)
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SA_COL_ENCRYPTION:
+                       //Encryption
+                        column.assign(sa.m_crypt.m_name);
+                        std::transform(column.begin(), column.end(),
+                                column.begin(), ::toupper);
+                        if(column.compare("AES") == 0)
+                        {
+                            column.append("128");
+                        }
+                        else
+                        {
+                            column.append("256");
+                        }
+                        if(set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sa_col_encryption,
+                                    column) != ipsec_ret::OK)
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SA_COL_MODE:
+                        if(sa.m_mode == ipsec_mode::tunnel)
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sa_col_mode,
+                                    OVSREC_IPSEC_MANUAL_SA_MODE_TUNNEL);
+                        }
+                        else
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sa_col_mode,
+                                    OVSREC_IPSEC_MANUAL_SA_MODE_TRANSPORT);
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SA_COL_PROTOCOL:
+                        if(sa.m_id.m_protocol == static_cast<int>(
+                                    ipsec_auth_method::ah))
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sa_col_protocol,
+                                    OVSREC_IPSEC_MANUAL_SA_PROTOCOL_AH);
+                        }
+                        else if(sa.m_id.m_protocol == static_cast<int>(
+                                    ipsec_auth_method::esp))
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sa_col_protocol,
+                                    OVSREC_IPSEC_MANUAL_SA_PROTOCOL_ESP);
+                        }
+                        else
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SA_COL_REQUEST_ID:
+                        set_integer_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_manual_sa_col_request_id,
+                                sa.m_id.m_spi);
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SA_COL_SELECTOR_DEST_PREFIX:
+                        ipsecd_helper::get_dst_selector(sa.m_selector, column);
+                        if(column.compare("") == 0)
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        set_string_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_manual_sa_col_selector_dest_prefix,
+                                column);
+
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SA_COL_SELECTOR_SRC_PREFIX:
+                        ipsecd_helper::get_src_selector(sa.m_selector, column);
+                        if(column.compare("") == 0)
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        set_string_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_manual_sa_col_selector_src_prefix,
+                                column);
+                        break;
+                    default:
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return result;
+                }
+                status = m_idl_wrapper.idl_txn_commit_block(status_txn);
+                if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
+                {
+                    //TODO: add log
+                    printf("Updating SA statistics failed \n");
+                }
+                else
+                {
+                    //TODO: add log
+                    printf("Updating, success\n\n");
+                    result = ipsec_ret::OK;
+                }
+
+                m_idl_wrapper.idl_txn_destroy(status_txn);
+                return result;
+            }
+        }
+    }
+
+    m_idl_wrapper.idl_txn_destroy(status_txn);
+    return result;
+}
+
+ipsec_ret IPsecOvsdb::ipsec_manual_sp_modify_column(const ipsec_sp& sp,
+        ovsrec_ipsec_manual_sp_column_id column_id)
+{
+    ipsec_ret result = ipsec_ret::MODIFY_FAILED;
+    const struct ovsrec_ipsec_manual_sp *row = nullptr;
+    enum ovsdb_idl_txn_status status;
+    idl_txn_t status_txn;
+    std::string dst_ip = "";
+    std::string src_ip = "";
+    std::string column = "";
+
+    // New transaction to add a new row
+    status_txn = m_idl_wrapper.idl_txn_create(m_idl);
+
+    row = m_idl_wrapper.ipsec_manual_sp_first(m_idl);
+    if(row != nullptr)
+    {
+        ipsecd_helper::get_dst_selector(sp.m_id.m_selector, dst_ip);
+        ipsecd_helper::get_src_selector(sp.m_id.m_selector, src_ip);
+        OVSREC_IPSEC_MANUAL_SP_FOR_EACH(row, m_idl)
+        {
+            if(strcmp(row->direction,
+                        ipsecd_helper::direction_to_str(sp.m_id.m_dir))==0 &&
+                    strcmp(row->src_prefix, src_ip.c_str())==0 &&
+                    strcmp(row->dest_prefix, dst_ip.c_str())==0)
+            {
+                switch(column_id)
+                {
+                    case OVSREC_IPSEC_MANUAL_SP_COL_ACTION:
+                        switch(sp.m_action)
+                        {
+                            case ipsec_action::allow:
+                                set_string_to_column(
+                                        const_cast<idl_row_t>(&row->header_),
+                                        &ovsrec_ipsec_manual_sp_col_action,
+                                        OVSREC_IPSEC_MANUAL_SP_ACTION_IPSEC);
+                                break;
+                            case ipsec_action::block:
+                                set_string_to_column(
+                                        const_cast<idl_row_t>(&row->header_),
+                                        &ovsrec_ipsec_manual_sp_col_action,
+                                        OVSREC_IPSEC_MANUAL_SP_ACTION_DISCARD);
+                                break;
+                            default:
+                                m_idl_wrapper.idl_txn_destroy(status_txn);
+                                return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SP_COL_PRIORITY:
+                        set_integer_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_manual_sp_col_priority,
+                                sp.m_priority);
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SP_COL_TMPL_DEST_IP:
+                        if(sp.m_template_lists.empty())
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        ipsecd_helper::set_ip_addr_t_to_str(
+                                sp.m_template_lists.front().m_dst_ip,
+                                sp.m_template_lists.front().m_addr_family,
+                                column);
+                        if(column.compare("") == 0)
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        set_string_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_manual_sp_col_tmpl_dest_ip,
+                                column);
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SP_COL_TMPL_IP_FAMILY:
+                        if(sp.m_template_lists.empty())
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+
+                        switch(sp.m_template_lists.front().m_addr_family)
+                        {
+                            case AF_INET:
+                                set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sp_col_tmpl_ip_family,
+                                    OVSREC_IPSEC_MANUAL_SP_TMPL_IP_FAMILY_IPV4);
+                                break;
+                            case AF_INET6:
+                                set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sp_col_tmpl_ip_family,
+                                    OVSREC_IPSEC_MANUAL_SP_TMPL_IP_FAMILY_IPV6);
+                                break;
+                            default:
+                                m_idl_wrapper.idl_txn_destroy(status_txn);
+                                return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SP_COL_TMPL_MODE:
+                        if(sp.m_template_lists.empty())
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        if(sp.m_template_lists.front().m_mode == \
+                                ipsec_mode::transport)
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sp_col_tmpl_mode,
+                                    OVSREC_IPSEC_MANUAL_SP_TMPL_MODE_TRANSPORT);
+                        }
+                        else
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sp_col_tmpl_mode,
+                                    OVSREC_IPSEC_MANUAL_SP_TMPL_MODE_TUNNEL);
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SP_COL_TMPL_PROTOCOL:
+                        if(sp.m_template_lists.empty())
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        if(sp.m_template_lists.front().m_protocol ==
+                                static_cast<int>(ipsec_auth_method::ah))
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sp_col_tmpl_protocol,
+                                    OVSREC_IPSEC_MANUAL_SP_TMPL_PROTOCOL_AH);
+                        }
+                        else
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_manual_sp_col_tmpl_protocol,
+                                    OVSREC_IPSEC_MANUAL_SP_TMPL_PROTOCOL_ESP);
+                        }
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SP_COL_TMPL_REQUEST_ID:
+                        if(sp.m_template_lists.empty())
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        set_integer_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_manual_sp_col_tmpl_request_id,
+                                sp.m_template_lists.front().m_req_id);
+                        break;
+                    case OVSREC_IPSEC_MANUAL_SP_COL_TMPL_SRC_IP:
+                        if(sp.m_template_lists.empty())
+                        {
+                            m_idl_wrapper.idl_txn_destroy(status_txn);
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        ipsecd_helper::set_ip_addr_t_to_str(
+                                sp.m_template_lists.front().m_src_ip,
+                                sp.m_template_lists.front().m_addr_family,
+                                column);
+                        if(column.compare("") == 0)
+                        {
+                            return ipsec_ret::NULL_PARAMETERS;
+                        }
+                        set_string_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_manual_sp_col_tmpl_src_ip,
+                                column);
+                        break;
+                    default:
+                        m_idl_wrapper.idl_txn_destroy(status_txn);
+                        return result;
+                }
+
+                status = m_idl_wrapper.idl_txn_commit_block(status_txn);
+
+                if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
+                {
+                    //TODO: add log
+                    printf("Updating SP failed \n");
+                }
+                else
+                {
+                    //TODO: add log
+                    printf("Updating SP, success\n\n");
+                    result = ipsec_ret::OK;
+                }
+                m_idl_wrapper.idl_txn_destroy(status_txn);
+                return result;
+            }
+        }
+    }
+
+    m_idl_wrapper.idl_txn_destroy(status_txn);
+    return result;
+}
+
+ipsec_ret IPsecOvsdb::ipsec_ike_policy_modify_column(
+        const ipsec_ike_connection& conn, ovsrec_ipsec_ike_policy_column_id)
+{
+    return ipsec_ret::MODIFY_FAILED;
 }

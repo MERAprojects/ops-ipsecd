@@ -281,6 +281,25 @@ class IPsecOvsdb : public IIPsecOvsdb
          */
         ipsec_ret modify_sa_stats(int64_t spi, const std::string& stat_name,
                 const std::string& value) override;
+
+        /**
+         * @copydoc IIPsecOvsdb::ipsec_manual_sa_modify_column
+         */
+        ipsec_ret ipsec_manual_sa_modify_column(const ipsec_sa& sa,
+                ovsrec_ipsec_manual_sa_column_id column_id) override;
+
+       /**
+        * @copydoc IIPsecOvsdb::ipsec_manual_sp_modify_column
+        */
+       ipsec_ret ipsec_manual_sp_modify_column(const ipsec_sp& sp,
+               ovsrec_ipsec_manual_sp_column_id column_id) override;
+
+      /**
+       * @copydoc IIPsecOvsdb::ipsec_ike_policy_modify_column
+       */
+      ipsec_ret ipsec_ike_policy_modify_column(
+              const ipsec_ike_connection& conn,
+              ovsrec_ipsec_ike_policy_column_id) override;
 };
 
 #endif /*IPSEC_OVSDB*/
