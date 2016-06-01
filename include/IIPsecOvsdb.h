@@ -434,6 +434,6 @@ class IIPsecOvsdb
        */
       virtual ipsec_ret ipsec_ike_policy_modify_column(
               const ipsec_ike_connection& conn,
-              ovsrec_ipsec_ike_policy_column_id) = 0;
+              ovsrec_ipsec_ike_policy_column_id column_id) = 0;
 };
 #endif /*IPSEC_OVSDB_H*/

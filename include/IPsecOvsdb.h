@@ -299,7 +299,7 @@ class IPsecOvsdb : public IIPsecOvsdb
        */
       ipsec_ret ipsec_ike_policy_modify_column(
               const ipsec_ike_connection& conn,
-              ovsrec_ipsec_ike_policy_column_id) override;
+              ovsrec_ipsec_ike_policy_column_id column_id) override;
 };
 
 #endif /*IPSEC_OVSDB*/

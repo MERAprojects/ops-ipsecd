@@ -99,8 +99,8 @@ ipsec_ret IPsecOvsdb::run()
             update_cache(m_idl_seqno);
             m_is_ready = true;
             /*TODO: add log info*/
-            printf("Updating ops-ipsecd tables cache from \
-                    OVSDB server.... done \n");
+            printf("Updating ops-ipsecd tables cache from " \
+                    "OVSDB server.... done \n");
         }
     }
 
@@ -490,21 +490,20 @@ ipsec_ret IPsecOvsdb::update_cache(unsigned int seq_no)
     const struct ovsrec_ipsec_manual_sp *sp_row = nullptr;
     const struct ovsrec_ipsec_ike_policy *policy_row = nullptr;
 
-
     /* Check for changes on the SA table*/
     sa_row = m_idl_wrapper.ipsec_manual_sa_track_get_first(m_idl);
     if(sa_row != nullptr)
     {
-        /*New changes*/
+        //New changes
         OVSREC_IPSEC_MANUAL_SA_FOR_EACH_TRACKED(sa_row, m_idl)
         {
-            /* Check for changes to row. */
+            // Check for changes to row.
             if (OVSREC_IDL_IS_ROW_INSERTED(sa_row, seq_no))
             {
                 if (ipsecd_ovsdb_event(
                             ipsec_events::sa_created) == ipsec_ret::OK)
                 {
-                    /*TODO: add log info*/
+                    //TODO: add log info
                 }
             }
             else if(OVSREC_IDL_IS_ROW_MODIFIED(sa_row, seq_no))
@@ -570,7 +569,7 @@ ipsec_ret IPsecOvsdb::update_cache(unsigned int seq_no)
         /*New changes*/
         OVSREC_IPSEC_IKE_POLICY_FOR_EACH_TRACKED(policy_row, m_idl)
         {
-            /* Check for changes to row. */
+            // Check for changes to row.
             if (OVSREC_IDL_IS_ROW_INSERTED(policy_row, seq_no))
             {
                 if (ipsecd_ovsdb_event(
@@ -579,12 +578,12 @@ ipsec_ret IPsecOvsdb::update_cache(unsigned int seq_no)
                     /*TODO: add log info*/
                 }
             }
-            else if(OVSREC_IDL_IS_ROW_MODIFIED(sa_row, seq_no))
+            else if(OVSREC_IDL_IS_ROW_MODIFIED(policy_row, seq_no))
             {
                 if (ipsecd_ovsdb_event(ipsec_events::ike_policy_modified) \
                         == ipsec_ret::OK)
                 {
-                    /*TODO: add log info*/
+                    //TODO: add log info
                 }
             }
             else if(m_is_ready == true)
@@ -592,12 +591,12 @@ ipsec_ret IPsecOvsdb::update_cache(unsigned int seq_no)
                 if (ipsecd_ovsdb_event(
                             ipsec_events::ike_policy_deleted) == ipsec_ret::OK)
                 {
-                    /*TODO: add log info*/
+                    //TODO: add log info
                 }
             }
         }
     }
-    /*flush information about tracked columns*/
+    //flush information about tracked columns
     m_idl_wrapper.idl_track_clear(m_idl);
     return result;
 }
@@ -1453,7 +1452,7 @@ ipsec_ret IPsecOvsdb::ipsec_ike_policy_modify_row(
     enum ovsdb_idl_txn_status status;
     idl_txn_t status_txn;
 
-   /* New transaction to add a new row*/
+   // New transaction to add a new row
     status_txn = m_idl_wrapper.idl_txn_create(m_idl);
 
     ike_row = m_idl_wrapper.ipsec_ike_policy_first(m_idl);
@@ -1461,7 +1460,7 @@ ipsec_ret IPsecOvsdb::ipsec_ike_policy_modify_row(
     {
         OVSREC_IPSEC_IKE_POLICY_FOR_EACH(ike_row, m_idl)
         {
-            /*SA is going to be modified*/
+            // conn is going to be modified
             if(conn.m_name.compare(ike_row->name) == 0)
             {
                 if (ipsec_ike_conn_to_ovsrec(conn,
@@ -2398,7 +2397,210 @@ ipsec_ret IPsecOvsdb::ipsec_manual_sp_modify_column(const ipsec_sp& sp,
 }
 
 ipsec_ret IPsecOvsdb::ipsec_ike_policy_modify_column(
-        const ipsec_ike_connection& conn, ovsrec_ipsec_ike_policy_column_id)
+        const ipsec_ike_connection& conn,
+        ovsrec_ipsec_ike_policy_column_id column_id)
 {
-    return ipsec_ret::MODIFY_FAILED;
+    ipsec_ret result = ipsec_ret::MODIFY_FAILED;
+    const struct ovsrec_ipsec_ike_policy *row = nullptr;
+    enum ovsdb_idl_txn_status status;
+    idl_txn_t status_txn;
+    std::string column = "";
+
+   // New transaction to add a new row
+    status_txn = m_idl_wrapper.idl_txn_create(m_idl);
+
+    row = m_idl_wrapper.ipsec_ike_policy_first(m_idl);
+    if(row != nullptr)
+    {
+        OVSREC_IPSEC_IKE_POLICY_FOR_EACH(row, m_idl)
+        {
+            // conn is going to be modified
+            if(conn.m_name.compare(row->name) == 0)
+            {
+                switch (column_id)
+                {
+                    case OVSREC_IPSEC_IKE_POLICY_COL_ENCRYPTION:
+                        switch(conn.m_cipher)
+                        {
+                            case ipsec_cipher::cipher_aes:
+                                set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_encryption,
+                                    OVSREC_IPSEC_IKE_POLICY_ENCRYPTION_AES128);
+                                break;
+                            case ipsec_cipher::cipher_aes256:
+                                set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_encryption,
+                                    OVSREC_IPSEC_IKE_POLICY_ENCRYPTION_AES256);
+                                break;
+                            default:
+                                //TODO:Default values here
+                                m_idl_wrapper.idl_txn_destroy(status_txn);
+                                return result;
+                        }
+                        break;
+                    case OVSREC_IPSEC_IKE_POLICY_COL_IKE_ENCRYPTION:
+                        switch(conn.m_child_sa.m_cipher)
+                        {
+                            case ipsec_cipher::cipher_aes:
+                                set_string_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_ike_policy_col_ike_encryption,
+                                OVSREC_IPSEC_IKE_POLICY_IKE_ENCRYPTION_AES128);
+                                break;
+                            case ipsec_cipher::cipher_aes256:
+                                set_string_to_column(
+                                const_cast<idl_row_t>(&row->header_),
+                                &ovsrec_ipsec_ike_policy_col_ike_encryption,
+                                OVSREC_IPSEC_IKE_POLICY_IKE_ENCRYPTION_AES256);
+                                break;
+                            default:
+                                //TODO:Default values here
+                                m_idl_wrapper.idl_txn_destroy(status_txn);
+                                return result;
+                        }
+                        break;
+                    case OVSREC_IPSEC_IKE_POLICY_COL_IKE_GROUP:
+                        switch(conn.m_child_sa.m_diffie_group)
+                        {
+                            case ipsec_diffie_group::group_2:
+                                set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_ike_group,
+                                    OVSREC_IPSEC_IKE_POLICY_IKE_GROUP_DIFFIE2);
+                                break;
+                            case ipsec_diffie_group::group_14:
+                                set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_ike_group,
+                                    OVSREC_IPSEC_IKE_POLICY_IKE_GROUP_DIFFIE14);
+                                break;
+                            default:
+                                //TODO:Add default values here
+                                m_idl_wrapper.idl_txn_destroy(status_txn);
+                                return result;
+                        }
+                        break;
+                    case OVSREC_IPSEC_IKE_POLICY_COL_IKE_INTEGRITY:
+                        if(conn.m_child_sa.m_integrity != ipsec_integrity::none)
+                        {
+                            column.assign(ipsecd_helper::integrity_to_str(
+                                        conn.m_integrity));
+                            std::transform(column.begin(), column.end(),
+                                    column.begin(),::toupper);
+                            // add "HMAC" string, md5 is not included into OVSDB
+                            column.append("HMAC");
+                            if(set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_ike_integrity,
+                                    column) != ipsec_ret::OK)
+                            {
+                                m_idl_wrapper.idl_txn_destroy(status_txn);
+                                return ipsec_ret::NULL_PARAMETERS;
+                            }
+                        }
+                        break;
+                    case OVSREC_IPSEC_IKE_POLICY_COL_INTEGRITY:
+                        if(conn.m_integrity != ipsec_integrity::none)
+                        {
+                            column.assign(ipsecd_helper::integrity_to_str(
+                                        conn.m_integrity));
+                            std::transform(column.begin(), column.end(),
+                                    column.begin(), ::toupper);
+                            //add "HMAC" string, md5 is not included into OVSDB
+                            column.append("HMAC");
+                            if(set_string_to_column(
+                                        const_cast<idl_row_t>(&row->header_),
+                                        &ovsrec_ipsec_ike_policy_col_integrity,
+                                        column) != ipsec_ret::OK)
+                            {
+                                m_idl_wrapper.idl_txn_destroy(status_txn);
+                                return ipsec_ret::NULL_PARAMETERS;
+                            }
+                        }
+                        break;
+                    case OVSREC_IPSEC_IKE_POLICY_COL_MODE:
+                        if(conn.m_child_sa.m_mode == ipsec_mode::transport)
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_mode,
+                                    OVSREC_IPSEC_IKE_POLICY_MODE_TRANSPORT);
+                        }
+                        else
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_mode,
+                                    OVSREC_IPSEC_IKE_POLICY_MODE_TUNNEL);
+                        }
+                        break;
+                    case OVSREC_IPSEC_IKE_POLICY_COL_PEER_AUTH_BY:
+                        if(conn.m_local_peer.m_auth_by == ipsec_authby::psk)
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_peer_auth_by,
+                                    OVSREC_IPSEC_IKE_POLICY_PEER_AUTH_BY_PSK);
+                        }
+                        else
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_peer_auth_by,
+                                    OVSREC_IPSEC_IKE_POLICY_PEER_AUTH_BY_CERT);
+                        }
+                        break;
+                    case OVSREC_IPSEC_IKE_POLICY_COL_PROTOCOL:
+                        if(conn.m_child_sa.m_auth_method == \
+                                ipsec_auth_method::esp)
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_protocol,
+                                    OVSREC_IPSEC_IKE_POLICY_PROTOCOL_ESP);
+                        }
+                        else
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_protocol,
+                                    OVSREC_IPSEC_IKE_POLICY_PROTOCOL_AH);
+                        }
+                        break;
+                    case OVSREC_IPSEC_IKE_POLICY_COL_PSK:
+                        if(conn.m_local_peer.m_cert.compare("") != 0)
+                        {
+                            set_string_to_column(
+                                    const_cast<idl_row_t>(&row->header_),
+                                    &ovsrec_ipsec_ike_policy_col_psk,
+                                    conn.m_local_peer.m_cert);
+                        }
+                        break;
+                    default:
+                        m_idl_wrapper.idl_txn_destroy(status_txn);
+                        return result;
+                }
+
+                status = m_idl_wrapper.idl_txn_commit_block(status_txn);
+                if(status != TXN_SUCCESS && status != TXN_UNCHANGED)
+                {
+                    //TODO: add log
+                    printf("Updating IKE Policy failed \n");
+                }
+                else
+                {
+                    //TODO: add log
+                    printf("Updating, success\n\n");
+                    result = ipsec_ret::OK;
+                }
+
+                m_idl_wrapper.idl_txn_destroy(status_txn);
+                return result;
+            }
+        }
+    }
+    m_idl_wrapper.idl_txn_destroy(status_txn);
+    return ipsec_ret::NOT_FOUND;
 }
