@@ -38,8 +38,8 @@
 #include "LibmnlWrapper.h"
 #include "IPsecNetlinkAPI.h"
 #include "ViciStreamParser.h"
-#include "IPsecOvsdb.h"
-#include "IPsecOvsdbIDLWrapper.h"
+//#include "IPsecOvsdb.h"
+//#include "IPsecOvsdbIDLWrapper.h"
 
 extern "C"{
 #include <poll-loop.h>
@@ -96,8 +96,8 @@ int main( int argc, const char* argv[] )
     IKEViciAPI ikeViciApi(vici_api, vici_stream_parser, mapFile);
     IPsecNetlinkAPI ipsec_netlink(mnl_wrapper);
     //TODO: include ovsdb into orchestrator class
-    IPsecOvsdbIDLWrapper idl_wrapper;
-    IPsecOvsdb ovsdb_control(idl_wrapper);
+    //IPsecOvsdbIDLWrapper idl_wrapper;
+    //IPsecOvsdb ovsdb_control(idl_wrapper);
 
     /////////////////////////
     //Create Worker Classes
@@ -118,19 +118,19 @@ int main( int argc, const char* argv[] )
         exit(EXIT_FAILURE);
     }
 
-    ovsdb_control.initialize();
+    //ovsdb_control.initialize();
 
     /////////////////////////
     //Create Debug Class
     DebugMode* debugger = DebugMode::createInst(
-            ikeViciApi, ipsec_netlink, ovsdb_control, argc, (char **) argv);
+            ikeViciApi, ipsec_netlink, argc, (char **) argv);
 
     while(g_IsRunning && debugger->uccIsRunning())
     {
-        ovsdb_control.run();
+        //ovsdb_control.run();
         debugger->ucc_run();
         usleep(250 * 1000);
-        ovsdb_control.wait();
+        //ovsdb_control.wait();
         debugger->ucc_wait();
         if (g_IsRunning && debugger->uccIsRunning())
         {

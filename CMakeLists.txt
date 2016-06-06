@@ -89,8 +89,8 @@ set (SOURCES
         ${SRC_DIR}/LibmnlWrapper.cpp
         ${SRC_DIR}/Orchestrator.cpp
         ${SRC_DIR}/ErrorNotifySS.cpp
-        ${SRC_DIR}/IPsecOvsdbIDLWrapper.cpp
-        ${SRC_DIR}/IPsecOvsdb.cpp
+#        ${SRC_DIR}/IPsecOvsdbIDLWrapper.cpp
+#        ${SRC_DIR}/IPsecOvsdb.cpp
         ${SRC_DIR}/IPsecVty.cpp
         ${SRC_DIR}/IPsecVtyIsaKmp.cpp
         ${SRC_DIR}/ipsec_cli_wrapper.cpp

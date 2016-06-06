@@ -26,7 +26,7 @@
 /**********************************
 *Local Includes
 **********************************/
-#include "IPsecOvsdb.h"
+//#include "IPsecOvsdb.h"
 #include "ops-ipsecd.h"
 #include "IKEViciAPI.h"
 #include "IPsecNetlinkAPI.h"
@@ -50,13 +50,15 @@ class DebugMode
         * @return DebugMode instance
         */
         static DebugMode *createInst(IKEViciAPI& ikeviciApi,
-                IPsecNetlinkAPI& ipsecNetlink, IPsecOvsdb& ipsec_ovsdb,
+                IPsecNetlinkAPI& ipsecNetlink,
+                // IPsecOvsdb& ipsec_ovsdb,
                 int argc, char **argv)
         {
             if (m_debugger == NULL)
             {
                 m_debugger = new DebugMode(ikeviciApi, ipsecNetlink,
-                        ipsec_ovsdb, argc, argv);
+                        //ipsec_ovsdb,
+                        argc, argv);
             }
             return m_debugger;
         }
@@ -214,7 +216,7 @@ class DebugMode
         /**
          * Reference to IPsecOvsdb Object
          */
-        IPsecOvsdb& m_ipsec_ovsdb;
+        //IPsecOvsdb& m_ipsec_ovsdb;
 
         /**
         * Removed Copy Constructor
@@ -236,7 +238,8 @@ class DebugMode
         * @param argv Arguments taken from the command line
          */
         DebugMode(IKEViciAPI& ikeviciApi, IPsecNetlinkAPI& ipsecNetlink,
-                IPsecOvsdb& ipsec_ovsdb, int argc, char **argv);
+                //IPsecOvsdb& ipsec_ovsdb,
+                int argc, char **argv);
 };
 
 #endif /*DEBUG_MODE_H*/

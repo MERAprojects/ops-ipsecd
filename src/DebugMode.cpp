@@ -31,9 +31,10 @@
 DebugMode *DebugMode::m_debugger = nullptr;
 
 DebugMode::DebugMode(IKEViciAPI& ikeviciApi, IPsecNetlinkAPI& ipsecNetlink,
-        IPsecOvsdb& ipsec_ovsdb, int argc, char **argv)
-        : m_ikeviciApi(ikeviciApi), m_ipsecNetlink(ipsecNetlink),
-        m_ipsec_ovsdb(ipsec_ovsdb)
+        //IPsecOvsdb& ipsec_ovsdb,
+        int argc, char **argv)
+        : m_ikeviciApi(ikeviciApi), m_ipsecNetlink(ipsecNetlink)
+       // m_ipsec_ovsdb(ipsec_ovsdb)
 {
     argc_d = argc;
     argv_d = &argv[0];
@@ -78,7 +79,8 @@ ipsec_ret DebugMode::create_connection(const ipsec_ike_connection& conn)
     {
         return result;
     }
-    return m_ipsec_ovsdb.ipsec_ike_policy_insert_row(conn);
+    //return m_ipsec_ovsdb.ipsec_ike_policy_insert_row(conn);
+    return ipsec_ret::OK;
 }
 
 ipsec_ret DebugMode::stop_connection(const std::string& conn_name,
@@ -95,7 +97,8 @@ ipsec_ret DebugMode::delete_connection(const std::string& conn_name)
     {
         return result;
     }
-    return m_ipsec_ovsdb.ipsec_ike_policy_delete_row(conn_name);
+    //return m_ipsec_ovsdb.ipsec_ike_policy_delete_row(conn_name);
+    return ipsec_ret::OK;
 }
 
 ipsec_ret DebugMode::start_connection(const std::string& conn_name,
@@ -123,13 +126,14 @@ ipsec_ret DebugMode::add_sa(const ipsec_sa& sa)
     {
         return result;
     }
-    return  m_ipsec_ovsdb.ipsec_manual_sa_insert_row(sa);
+    //return  m_ipsec_ovsdb.ipsec_manual_sa_insert_row(sa);
+    return ipsec_ret::OK;
 }
 
 ipsec_ret  DebugMode::get_sa(uint32_t spi, ipsec_sa& sa)
 {
-    //m_ipsecNetlink.get_sa(spi, sa);
-    return m_ipsec_ovsdb.ipsec_manual_sa_get_row(spi, sa);
+    return m_ipsecNetlink.get_sa(spi, sa);
+    //return m_ipsec_ovsdb.ipsec_manual_sa_get_row(spi, sa);
 }
 
 ipsec_ret  DebugMode::del_sa(const ipsec_sa_id& id)
@@ -140,7 +144,8 @@ ipsec_ret  DebugMode::del_sa(const ipsec_sa_id& id)
     {
         return result;
     }
-    return m_ipsec_ovsdb.ipsec_manual_sa_delete_row(id);
+    //return m_ipsec_ovsdb.ipsec_manual_sa_delete_row(id);
+    return ipsec_ret::OK;
 }
 
 ipsec_ret  DebugMode::add_sp(const ipsec_sp& sp)
@@ -151,14 +156,15 @@ ipsec_ret  DebugMode::add_sp(const ipsec_sp& sp)
     {
         return result;
     }
-    return m_ipsec_ovsdb.ipsec_manual_sp_insert_row(sp);
+    //return m_ipsec_ovsdb.ipsec_manual_sp_insert_row(sp);
+    return ipsec_ret::OK;
 }
 
 ipsec_ret  DebugMode::get_sp(const ipsec_sp_id& sp_id, ipsec_sp& sp)
 {
-    //m_ipsecNetlink.get_sp(sp_id, sp);
-    return m_ipsec_ovsdb.ipsec_manual_sp_get_row(sp_id.m_dir,
-            sp_id.m_selector, sp);
+    return m_ipsecNetlink.get_sp(sp_id, sp);
+    //return m_ipsec_ovsdb.ipsec_manual_sp_get_row(sp_id.m_dir,
+    //        sp_id.m_selector, sp);
 }
 
 ipsec_ret  DebugMode::del_sp(const ipsec_sp_id& sp_id)
@@ -169,6 +175,7 @@ ipsec_ret  DebugMode::del_sp(const ipsec_sp_id& sp_id)
     {
         return result;
     }
-    return m_ipsec_ovsdb.ipsec_manual_sp_delete_row(
-            sp_id.m_dir, sp_id.m_selector);
+    //return m_ipsec_ovsdb.ipsec_manual_sp_delete_row(
+      //      sp_id.m_dir, sp_id.m_selector);
+    return ipsec_ret::OK;
 }
